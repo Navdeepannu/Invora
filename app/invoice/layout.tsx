@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { DesktopNavbar } from "@/components/home/navbar";
+import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
+import "../../app/globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,8 +12,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const playfair = Playfair_Display({
+  variable: "--font-invoice-serif",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
-  title: "Invoicely - Generate Free Invoices",
+  title: "Invoice Builder - Generate Free Invoices and Export PDFs.",
   description:
     "Generate Free invoices with modern, professional template looks.",
 };
@@ -27,10 +31,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable}`}
       >
-        <DesktopNavbar />
-        {children}
+        <main className="min-h-screen bg-background text-foreground">
+          {children}
+        </main>
       </body>
     </html>
   );
