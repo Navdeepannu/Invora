@@ -1,4 +1,4 @@
-export type InvoiceTemplateId = "classic" | "modern";
+export type InvoiceTemplateId = "classic" | "modern" | "minimal" | "accent";
 
 export interface InvoiceTheme {
   template: InvoiceTemplateId;
@@ -35,6 +35,15 @@ export interface InvoiceLineItem {
 
 export interface InvoiceTax {
   rate: number;
+}
+
+/** Computed totals for display in templates and preview. */
+export interface InvoiceTotals {
+  subtotal: number;
+  discountPercent: number;
+  discountAmount: number;
+  taxAmount: number;
+  total: number;
 }
 
 export interface InvoiceData {

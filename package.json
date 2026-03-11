@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.3.2",
     "@tabler/icons-react": "^3.38.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -16,10 +17,15 @@
     "lucide-react": "^0.576.0",
     "motion": "^12.34.4",
     "next": "16.1.6",
+    "next-themes": "^0.4.6",
+    "pako": "^2.1.0",
+    "pdfjs-dist": "^5.5.207",
     "radix-ui": "^1.4.3",
     "react": "19.2.3",
     "react-day-picker": "^9.14.0",
     "react-dom": "19.2.3",
+    "react-signature-canvas": "^1.1.0-alpha.2",
+    "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {

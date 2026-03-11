@@ -60,7 +60,7 @@ export function HeroSection() {
 
         <div className="relative z-20 flex items-center justify-center p-6 md:p-10 ">
           <Image
-            src="/images/hero-image.png"
+            src="/images/preview.png"
             alt="hero preview"
             width={1200}
             height={800}

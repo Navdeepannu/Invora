@@ -1,15 +1,15 @@
 "use client";
 
 import {
-  useMemo,
+  useCallback,
+  useEffect,
   useRef,
   useState,
   type ChangeEvent,
-  type PointerEvent,
 } from "react";
 
+import { toast } from "sonner";
 import type { InvoiceData, InvoiceLineItem } from "@/types/invoice";
-import { validateInvoice } from "@/lib/invoice-validation";
 import {
   Accordion,
   AccordionContent,
@@ -20,15 +20,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ColorPicker } from "@/components/ui/color-picker";
-import { DatePicker } from "@/components/ui/date-picker";
 import {
   Select,
   SelectContent,
@@ -36,8 +36,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CircleAlert } from "lucide-react";
-import { IconFile, IconFileAlert } from "@tabler/icons-react";
+import { ItemTable } from "@/components/ui/item-table";
+import { ImageIcon } from "lucide-react";
+import SignatureCanvas from "react-signature-canvas";
+import type SignatureCanvasType from "react-signature-canvas";
+import {
+  getClientProfiles,
+  getCompanyProfiles,
+  deleteClientProfile,
+  deleteCompanyProfile,
+  saveClientProfile,
+  saveCompanyProfile,
+  type SavedClientProfile,
+  type SavedCompanyProfile,
+} from "@/utils/storage";
+import {
+  IconTrash,
+  IconDeviceFloppy,
+  IconInfoCircle,
+} from "@tabler/icons-react";
+
+/** Tighter inputs in accordions so sections read clearly */
+const ACCORDION_INPUT_CLASS = "h-8 text-sm";
 
 const CURRENCY_OPTIONS = [
   { value: "USD", label: "USD - US Dollar", flag: "🇺🇸" },
@@ -49,18 +69,88 @@ const CURRENCY_OPTIONS = [
   { value: "SGD", label: "SGD - Singapore Dollar", flag: "🇸🇬" },
 ] as const;
 
+const TEMPLATE_OPTIONS = [
+  { value: "classic" as const, label: "Classic" },
+  { value: "modern" as const, label: "Modern" },
+  { value: "minimal" as const, label: "Minimal" },
+  { value: "accent" as const, label: "Accent" },
+];
+
+type TemplateSegmentControlProps = {
+  value: InvoiceData["theme"]["template"];
+  onChange: (template: InvoiceData["theme"]["template"]) => void;
+};
+
+function TemplateSegmentControl({
+  value,
+  onChange,
+}: TemplateSegmentControlProps) {
+  const index = TEMPLATE_OPTIONS.findIndex((o) => o.value === value);
+  const selectedIndex = index >= 0 ? index : 0;
+
+  return (
+    <div className="relative flex w-fit rounded-full bg-muted p-1">
+      {/* Sliding pill background */}
+      <div
+        className="absolute top-1 bottom-1 rounded-full bg-white shadow-sm transition-[left] duration-200 ease-out"
+        style={{
+          left: `calc(4px + ${selectedIndex} * (100% - 8px) / 4)`,
+          width: `calc((100% - 8px) / 4)`,
+        }}
+        aria-hidden
+      />
+      {TEMPLATE_OPTIONS.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className="relative z-10 min-w-0 flex-1 cursor-pointer rounded-full px-4 py-1.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none"
+          style={{ width: "25%" }}
+        >
+          <span
+            className={
+              value === opt.value
+                ? "text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }
+          >
+            {opt.label}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 type InvoiceEditorProps = {
   invoice: InvoiceData;
   onChange: (next: InvoiceData) => void;
 };
 
 export function InvoiceEditor({ invoice, onChange }: InvoiceEditorProps) {
-  const [errorsOpen, setErrorsOpen] = useState(false);
-  const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const isDrawingRef = useRef(false);
-  const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+  const signatureCanvasRef = useRef<SignatureCanvasType | null>(null);
+  const [clientProfiles, setClientProfiles] = useState<SavedClientProfile[]>(
+    () => getClientProfiles(),
+  );
+  const [companyProfiles, setCompanyProfiles] = useState<SavedCompanyProfile[]>(
+    () => getCompanyProfiles(),
+  );
+  const [selectedClientProfileId, setSelectedClientProfileId] = useState("");
+  const [selectedCompanyProfileId, setSelectedCompanyProfileId] = useState("");
+  const [saveClientDialogOpen, setSaveClientDialogOpen] = useState(false);
+  const [saveCompanyDialogOpen, setSaveCompanyDialogOpen] = useState(false);
+  const [clientProfileName, setClientProfileName] = useState("");
+  const [companyProfileName, setCompanyProfileName] = useState("");
 
-  const validationErrors = useMemo(() => validateInvoice(invoice), [invoice]);
+  const normalizePrimaryHex = (raw: string | undefined) => {
+    const s = raw ?? "#4f46e5";
+    return /^#[0-9A-Fa-f]{6}$/.test(s) ? s.toUpperCase() : "#4F46E5";
+  };
+  const [primaryColorInput, setPrimaryColorInput] = useState("");
+  const [isEditingHex, setIsEditingHex] = useState(false);
+  const primaryColorDisplay = isEditingHex
+    ? primaryColorInput
+    : normalizePrimaryHex(invoice.theme.primaryColor);
 
   const update = (partial: Partial<InvoiceData>) => {
     onChange({ ...invoice, ...partial });
@@ -117,6 +207,14 @@ export function InvoiceEditor({ invoice, onChange }: InvoiceEditorProps) {
     update({ lineItems: nextItems });
   };
 
+  const reorderLineItems = (fromIndex: number, toIndex: number) => {
+    const items = [...invoice.lineItems];
+    if (toIndex < 0 || toIndex >= items.length) return;
+    const [removed] = items.splice(fromIndex, 1);
+    items.splice(toIndex, 0, removed);
+    update({ lineItems: items });
+  };
+
   const handleLogoUpload = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -144,66 +242,28 @@ export function InvoiceEditor({ invoice, onChange }: InvoiceEditorProps) {
     };
     reader.readAsDataURL(file);
   };
-
-  const handleSignaturePointerDown = (
-    event: PointerEvent<HTMLCanvasElement>,
-  ) => {
+  const handleSignatureConfirm = () => {
     const canvas = signatureCanvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
-    isDrawingRef.current = true;
-    lastPointRef.current = { x, y };
-  };
-
-  const handleSignaturePointerMove = (
-    event: PointerEvent<HTMLCanvasElement>,
-  ) => {
-    if (!isDrawingRef.current) return;
-    const canvas = signatureCanvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.strokeStyle = "#111827";
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
-
-    const lastPoint = lastPointRef.current ?? { x, y };
-    ctx.beginPath();
-    ctx.moveTo(lastPoint.x, lastPoint.y);
-    ctx.lineTo(x, y);
-    ctx.stroke();
-
-    lastPointRef.current = { x, y };
-  };
-
-  const finishSignatureStroke = () => {
-    if (!isDrawingRef.current) return;
-    isDrawingRef.current = false;
-    lastPointRef.current = null;
-
-    const canvas = signatureCanvasRef.current;
-    if (!canvas) return;
-    const dataUrl = canvas.toDataURL("image/png");
+    if (!canvas || canvas.isEmpty()) return;
+    const dataUrl = canvas.getTrimmedCanvas().toDataURL("image/png");
     update({ signatureDataUrl: dataUrl });
   };
 
   const clearSignature = () => {
     const canvas = signatureCanvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.clear();
     update({ signatureDataUrl: undefined });
   };
+
+  useEffect(() => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return;
+    canvas.clear();
+    if (invoice.signatureDataUrl) {
+      canvas.fromDataURL(invoice.signatureDataUrl);
+    }
+  }, [invoice.signatureDataUrl]);
 
   const updateTemplate = (template: InvoiceData["theme"]["template"]) => {
     update({
@@ -223,168 +283,240 @@ export function InvoiceEditor({ invoice, onChange }: InvoiceEditorProps) {
     });
   };
 
+  const refreshProfiles = useCallback(() => {
+    setClientProfiles(getClientProfiles());
+    setCompanyProfiles(getCompanyProfiles());
+  }, []);
+
+  const handleSaveClientProfile = () => {
+    const name = clientProfileName.trim();
+    if (!name) return;
+    const saved = saveClientProfile(name, invoice.client);
+    setClientProfileName("");
+    setSaveClientDialogOpen(false);
+    refreshProfiles();
+    setSelectedClientProfileId(saved.id);
+    toast.success("Client profile saved", {
+      description: saved.name,
+    });
+  };
+
+  const handleSaveCompanyProfile = () => {
+    const name = companyProfileName.trim();
+    if (!name) return;
+    const saved = saveCompanyProfile(name, invoice.company, {
+      companyLogoDataUrl: invoice.companyLogoDataUrl,
+      signatureDataUrl: invoice.signatureDataUrl,
+    });
+    setCompanyProfileName("");
+    setSaveCompanyDialogOpen(false);
+    refreshProfiles();
+    setSelectedCompanyProfileId(saved.id);
+    toast.success("Company profile saved", {
+      description: saved.name,
+    });
+  };
+
+  const applyClientProfile = (profileId: string) => {
+    const profile = clientProfiles.find((item) => item.id === profileId);
+    if (!profile) return;
+    update({ client: profile.clientInfo });
+    setSelectedClientProfileId(profileId);
+  };
+
+  const applyCompanyProfile = (profileId: string) => {
+    const profile = companyProfiles.find((item) => item.id === profileId);
+    if (!profile) return;
+    update({
+      company: profile.companyInfo,
+      companyLogoDataUrl: profile.companyLogoDataUrl,
+      signatureDataUrl: profile.signatureDataUrl,
+    });
+    setSelectedCompanyProfileId(profileId);
+  };
+
+  const removeClientProfile = (profileId: string) => {
+    deleteClientProfile(profileId);
+    if (selectedClientProfileId === profileId) {
+      setSelectedClientProfileId("");
+    }
+    refreshProfiles();
+  };
+
+  const removeCompanyProfile = (profileId: string) => {
+    deleteCompanyProfile(profileId);
+    if (selectedCompanyProfileId === profileId) {
+      setSelectedCompanyProfileId("");
+    }
+    refreshProfiles();
+  };
+
   return (
     <div className="h-full border-r bg-card">
-      <div className="flex items-center justify-between border-b px-6 py-4">
-        <div>
-          <h2 className="text-sm font-semibold tracking-tight">
-            Invoice Template
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            Configure details on the left, preview on the right.
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant={validationErrors.length > 0 ? "outline" : "ghost"}
-          size="sm"
-          onClick={() => setErrorsOpen(true)}
-          className={
-            validationErrors.length > 0
-              ? "border-destructive/50 text-destructive hover:bg-destructive/10"
-              : ""
-          }
-        >
-          <CircleAlert className="size-4" />
-          Errors
-          {validationErrors.length > 0 && (
-            <span className="ml-1.5 flex size-5 items-center justify-center rounded-full bg-destructive/15 text-xs font-medium text-destructive">
-              {validationErrors.length}
-            </span>
-          )}
-        </Button>
-      </div>
-
-      <Dialog open={errorsOpen} onOpenChange={setErrorsOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <IconFileAlert className="size-6 text-zinc-600 bg-neutral-200/70 p-0.5 rounded-sm" />
-              <span className="text-nuetra-900 text-lg ">
-                Your Invoice Has Errors
-              </span>
-            </DialogTitle>
-            <DialogDescription className="pl-8">
-              Please fix the errors to continue to view the invoice.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="max-h-[32vh] space-y-3 overflow-y-auto py-2">
-            {validationErrors.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No errors found. Your invoice is ready.
-              </p>
-            ) : (
-              validationErrors.map((err, i) => (
-                <div
-                  key={`${err.path}-${i}`}
-                  className="rounded-sm border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="font-medium text-destructive">
-                        {err.code === "too_small"
-                          ? "CODE: too_small"
-                          : "CODE: required"}
-                      </p>
-                      <p className="mt-1 text-sm text-neutral-500">
-                        {err.message}
-                      </p>
-                    </div>
-
-                    <p className="font-mono text-xs text-muted-foreground">
-                      {err.path}
-                    </p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-          <div className="flex justify-end pt-2">
-            <Button variant="outline" onClick={() => setErrorsOpen(false)}>
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {/* Main content */}
       <div className="max-h-[calc(100vh-4rem)] overflow-y-auto pb-6">
-        <Accordion
-          type="single"
-          collapsible
-          defaultValue="template"
-          className="space-y-3"
-        >
+        <Accordion type="single" collapsible defaultValue="template">
           <AccordionItem value="template">
-            <AccordionTrigger>Templates & branding</AccordionTrigger>
-            <AccordionContent className="space-y-4 px-4">
+            <AccordionTrigger>Invoice Templates & branding</AccordionTrigger>
+            <AccordionContent className="space-y-2 grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs">PDF template style</Label>
-                <div className="inline-flex gap-2 rounded-md bg-muted p-1 text-xs">
-                  <Button
-                    type="button"
-                    size="xs"
-                    variant={
-                      invoice.theme.template === "classic"
-                        ? "default"
-                        : "outline"
-                    }
-                    onClick={() => updateTemplate("classic")}
-                  >
-                    Classic
-                  </Button>
-                  <Button
-                    type="button"
-                    size="xs"
-                    variant={
-                      invoice.theme.template === "modern"
-                        ? "default"
-                        : "outline"
-                    }
-                    onClick={() => updateTemplate("modern")}
-                  >
-                    Modern
-                  </Button>
-                </div>
+                <Label className="text-xs">Invoice template styles</Label>
+                <TemplateSegmentControl
+                  value={invoice.theme.template}
+                  onChange={updateTemplate}
+                />
+                <span className="text-[10px] text-muted-foreground flex pl-1 items-center gap-1">
+                  <IconInfoCircle className="size-2.5 text-muted-foreground" />
+                  Choose your template styles
+                </span>
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <Label htmlFor="brand-color" className="text-xs">
                   Theme color
                 </Label>
-                <ColorPicker
-                  id="brand-color"
-                  value={invoice.theme.primaryColor}
-                  onChange={(hex) => updatePrimaryColor(hex || "#4f46e5")}
-                />
-                <p className="text-[11px] text-muted-foreground">
-                  Used for headings and primary sections in the invoice preview.
-                </p>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="brand-color"
+                    type="color"
+                    value={
+                      /^#[0-9A-Fa-f]{6}$/.test(invoice.theme.primaryColor ?? "")
+                        ? invoice.theme.primaryColor!
+                        : "#4f46e5"
+                    }
+                    onChange={(e) =>
+                      updatePrimaryColor(e.target.value || "#4f46e5")
+                    }
+                    className="h-9 w-14 cursor-pointer rounded-md border border-input bg-transparent p-1 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded [&::-webkit-color-swatch]:border-border"
+                  />
+                  <Input
+                    type="text"
+                    value={primaryColorDisplay}
+                    onFocus={() => {
+                      setPrimaryColorInput(
+                        normalizePrimaryHex(invoice.theme.primaryColor),
+                      );
+                      setIsEditingHex(true);
+                    }}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setPrimaryColorInput(v);
+                      const hex = v.startsWith("#") ? v.slice(1) : v;
+                      if (/^[0-9A-Fa-f]{6}$/.test(hex)) {
+                        updatePrimaryColor("#" + hex.toLowerCase());
+                      }
+                    }}
+                    onBlur={() => {
+                      const hex = primaryColorInput.startsWith("#")
+                        ? primaryColorInput.slice(1)
+                        : primaryColorInput;
+                      if (/^[0-9A-Fa-f]{6}$/.test(hex)) {
+                        updatePrimaryColor("#" + hex.toLowerCase());
+                      }
+                      setIsEditingHex(false);
+                    }}
+                    placeholder="#4F46E5"
+                    className="text-xs font-mono text-muted-foreground"
+                  />
+                </div>
+
+                <span className="text-[10px] text-muted-foreground flex pl-1 items-center gap-1">
+                  <IconInfoCircle className="size-2.5 text-muted-foreground" />
+                  Customize colors to match your brand.
+                </span>
               </div>
             </AccordionContent>
           </AccordionItem>
 
           <AccordionItem value="client">
             <AccordionTrigger>Client information</AccordionTrigger>
-            <AccordionContent className="space-y-3 px-2">
-              <div className="space-y-1">
-                <Label htmlFor="client-name">
+            {/* Profile row: always visible under trigger, above collapsible content */}
+            <div className="flex flex-col gap-2 border-t border-border bg-muted/20 px-4 py-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <Select
+                  value={selectedClientProfileId}
+                  onValueChange={applyClientProfile}
+                >
+                  <SelectTrigger
+                    className={ACCORDION_INPUT_CLASS + " min-w-52 flex-1"}
+                  >
+                    <SelectValue placeholder="Select a saved client profile" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clientProfiles.length === 0 ? (
+                      <SelectItem value="__none" disabled>
+                        No saved client profiles, save one to get started
+                      </SelectItem>
+                    ) : (
+                      clientProfiles.map((profile) => (
+                        <div
+                          key={profile.id}
+                          className="flex items-center justify-between gap-2"
+                        >
+                          <SelectItem
+                            key={profile.id}
+                            value={profile.id}
+                            className="cursor-pointer"
+                          >
+                            {profile.name}
+                          </SelectItem>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            className="text-destructive hover:text-destructive mr-1 hover:bg-destructive/10"
+                            onClick={() => removeClientProfile(profile.id)}
+                          >
+                            <IconTrash className="size-3.5 text-destructive" />
+                          </Button>
+                        </div>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    setClientProfileName(
+                      invoice.client.name || "Client Profile",
+                    );
+                    setSaveClientDialogOpen(true);
+                  }}
+                >
+                  <IconDeviceFloppy />
+                  Save Current
+                </Button>
+              </div>
+            </div>
+
+            <AccordionContent className="space-y-6">
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="client-name"
+                  className="text-xs font-medium text-muted-foreground"
+                >
                   Client name <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="client-name"
+                  className={ACCORDION_INPUT_CLASS}
                   placeholder="Enter client name"
                   value={invoice.client.name}
                   onChange={(event) => updateClient("name", event.target.value)}
                 />
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="client-address">
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="client-address"
+                  className="text-xs font-medium text-muted-foreground"
+                >
                   Client address <span className="text-destructive">*</span>
                 </Label>
                 <Textarea
                   id="client-address"
                   rows={3}
+                  className="min-h-20 text-sm"
                   placeholder="Street address, city, postal code, country"
                   value={invoice.client.address}
                   onChange={(event) =>
@@ -392,13 +524,17 @@ export function InvoiceEditor({ invoice, onChange }: InvoiceEditorProps) {
                   }
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="client-email">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="client-email"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
                     Client email <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="client-email"
+                    className={ACCORDION_INPUT_CLASS}
                     type="email"
                     placeholder="client@example.com"
                     value={invoice.client.email ?? ""}
@@ -407,12 +543,16 @@ export function InvoiceEditor({ invoice, onChange }: InvoiceEditorProps) {
                     }
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="client-phone">
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="client-phone"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
                     Client phone <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="client-phone"
+                    className={ACCORDION_INPUT_CLASS}
                     placeholder="+1 555 000 0000"
                     value={invoice.client.phone ?? ""}
                     onChange={(event) =>
@@ -426,13 +566,71 @@ export function InvoiceEditor({ invoice, onChange }: InvoiceEditorProps) {
 
           <AccordionItem value="company">
             <AccordionTrigger>Your company information</AccordionTrigger>
-            <AccordionContent className="space-y-3 px-2">
-              <div className="space-y-1">
-                <Label htmlFor="company-name">
+            <div className="flex flex-col gap-2 border-t border-border bg-muted/20 px-4 py-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <Select
+                  value={selectedCompanyProfileId}
+                  onValueChange={applyCompanyProfile}
+                >
+                  <SelectTrigger
+                    className={ACCORDION_INPUT_CLASS + " min-w-52 flex-1"}
+                  >
+                    <SelectValue placeholder="Select a saved company profile" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companyProfiles.length === 0 ? (
+                      <SelectItem value="__none" disabled>
+                        No saved company profiles
+                      </SelectItem>
+                    ) : (
+                      companyProfiles.map((profile) => (
+                        <div
+                          key={profile.id}
+                          className="flex items-center justify-between gap-2"
+                        >
+                          <SelectItem key={profile.id} value={profile.id}>
+                            {profile.name}
+                          </SelectItem>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            className="text-destructive hover:text-destructive mr-1 hover:bg-destructive/10"
+                            onClick={() => removeCompanyProfile(profile.id)}
+                          >
+                            <IconTrash className="size-3.5 text-destructive" />
+                          </Button>
+                        </div>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    setCompanyProfileName(
+                      invoice.company.name || "Company Profile",
+                    );
+                    setSaveCompanyDialogOpen(true);
+                  }}
+                >
+                  <IconDeviceFloppy />
+                  Save Current
+                </Button>
+              </div>
+            </div>
+            <AccordionContent className="space-y-6">
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="company-name"
+                  className="text-xs font-medium text-muted-foreground"
+                >
                   Company name <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="company-name"
+                  className={ACCORDION_INPUT_CLASS}
                   placeholder="Enter your company name"
                   value={invoice.company.name}
                   onChange={(event) =>
@@ -440,13 +638,17 @@ export function InvoiceEditor({ invoice, onChange }: InvoiceEditorProps) {
                   }
                 />
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="company-address">
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="company-address"
+                  className="text-xs font-medium text-muted-foreground"
+                >
                   Company address <span className="text-destructive">*</span>
                 </Label>
                 <Textarea
                   id="company-address"
                   rows={3}
+                  className="min-h-20 text-sm"
                   placeholder="Street address, city, postal code, country"
                   value={invoice.company.address}
                   onChange={(event) =>
@@ -454,13 +656,17 @@ export function InvoiceEditor({ invoice, onChange }: InvoiceEditorProps) {
                   }
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="company-email">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="company-email"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
                     Company email <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="company-email"
+                    className={ACCORDION_INPUT_CLASS}
                     type="email"
                     placeholder="you@business.com"
                     value={invoice.company.email ?? ""}
@@ -469,12 +675,16 @@ export function InvoiceEditor({ invoice, onChange }: InvoiceEditorProps) {
                     }
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="company-phone">
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="company-phone"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
                     Company phone <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="company-phone"
+                    className={ACCORDION_INPUT_CLASS}
                     placeholder="+1 555 000 0000"
                     value={invoice.company.phone ?? ""}
                     onChange={(event) =>
@@ -484,12 +694,16 @@ export function InvoiceEditor({ invoice, onChange }: InvoiceEditorProps) {
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <Label htmlFor="company-tax-id">
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="company-tax-id"
+                  className="text-xs font-medium text-muted-foreground"
+                >
                   Tax ID / VAT / GST number
                 </Label>
                 <Input
                   id="company-tax-id"
+                  className={ACCORDION_INPUT_CLASS}
                   placeholder="e.g. VAT DE123456789, GST 22AAAAA0000A1Z5"
                   value={invoice.company.taxId ?? ""}
                   onChange={(event) =>
@@ -498,46 +712,77 @@ export function InvoiceEditor({ invoice, onChange }: InvoiceEditorProps) {
                 />
               </div>
 
-              <div className="space-y-2 rounded-md border bg-muted/40 p-3">
-                <p className="text-xs font-medium">Company logo</p>
-                <div className="flex items-center gap-3">
+              <div className="space-y-2.5 rounded-md border border-border/60 bg-muted/30 p-3">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Company logo
+                </p>
+                <div>
                   <Input
+                    id="company-logo-upload"
                     type="file"
                     accept="image/*"
-                    className="text-xs file:text-xs"
+                    className="sr-only"
                     onChange={handleLogoUpload}
                   />
+                  <label
+                    htmlFor="company-logo-upload"
+                    className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-muted-foreground/40 bg-background/60 px-6 py-6 text-center hover:bg-muted/70"
+                  >
+                    <ImageIcon className="mb-2 h-7 w-7 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">
+                      Drag &amp; drop a logo here, or{" "}
+                      <span className="font-medium text-sky-700 underline-offset-4 hover:underline">
+                        browse
+                      </span>
+                    </p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      PNG, JPG, GIF, WebP, SVG up to 5MB
+                    </p>
+                  </label>
                   {invoice.companyLogoDataUrl && (
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <p className="flex-1 truncate text-[11px] text-muted-foreground">
+                        Logo added. It will appear on your invoice preview.
+                      </p>
+                      <Button
+                        type="button"
+                        size="xs"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() =>
+                          update({ companyLogoDataUrl: undefined })
+                        }
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2.5 rounded-md border border-border/60 bg-muted/30 p-3">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Signature
+                </p>
+                <div className="space-y-2">
+                  <SignatureCanvas
+                    ref={signatureCanvasRef}
+                    penColor="#020617"
+                    backgroundColor="transparent"
+                    canvasProps={{
+                      className:
+                        "h-32 w-full select-none rounded-md border bg-background touch-none",
+                    }}
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button
                       type="button"
                       size="xs"
-                      variant="ghost"
-                      onClick={() => update({ companyLogoDataUrl: undefined })}
+                      variant="default"
+                      onClick={handleSignatureConfirm}
                     >
-                      Remove
+                      Confirm signature
                     </Button>
-                  )}
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  Upload a small PNG or SVG logo. It will appear on the invoice
-                  preview.
-                </p>
-              </div>
-
-              <div className="space-y-2 rounded-md border bg-muted/40 p-3">
-                <p className="text-xs font-medium">Signature</p>
-                <div className="space-y-2">
-                  <canvas
-                    ref={signatureCanvasRef}
-                    className="h-32 w-full select-none rounded-md border bg-background touch-none"
-                    width={600}
-                    height={160}
-                    onPointerDown={handleSignaturePointerDown}
-                    onPointerMove={handleSignaturePointerMove}
-                    onPointerUp={finishSignatureStroke}
-                    onPointerLeave={finishSignatureStroke}
-                  />
-                  <div className="flex flex-wrap items-center gap-2">
                     <Button
                       type="button"
                       size="xs"
@@ -549,11 +794,12 @@ export function InvoiceEditor({ invoice, onChange }: InvoiceEditorProps) {
                     <Input
                       type="file"
                       accept="image/*"
-                      className="max-w-55 text-xs file:text-xs"
+                      className="max-w-55 h-7 text-xs file:text-xs cursor-pointer"
                       onChange={handleSignatureUpload}
                     />
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                    <IconInfoCircle className="size-3 text-amber-500" />
                     Draw your signature or import an image. It will render near
                     the bottom of the invoice.
                   </p>
@@ -564,12 +810,18 @@ export function InvoiceEditor({ invoice, onChange }: InvoiceEditorProps) {
 
           <AccordionItem value="invoice-details">
             <AccordionTrigger>Invoice details</AccordionTrigger>
-            <AccordionContent className="space-y-3 px-2">
-              <div className="space-y-1">
-                <Label htmlFor="invoice-number">Invoice number</Label>
+            <AccordionContent className="space-y-6">
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="invoice-number"
+                  className="text-xs font-medium text-muted-foreground"
+                >
+                  Invoice number
+                </Label>
                 <Input
                   id="invoice-number"
-                  placeholder="Enter invoice number"
+                  className={ACCORDION_INPUT_CLASS}
+                  placeholder="e.g. INV-2026"
                   value={invoice.meta.invoiceNumber}
                   onChange={(event) =>
                     updateMeta("invoiceNumber", event.target.value)
@@ -577,7 +829,7 @@ export function InvoiceEditor({ invoice, onChange }: InvoiceEditorProps) {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <DatePicker
                   id="issue-date"
                   label="Date issued"
@@ -594,14 +846,22 @@ export function InvoiceEditor({ invoice, onChange }: InvoiceEditorProps) {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="currency">Currency</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="currency"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    Currency
+                  </Label>
                   <Select
                     value={invoice.currency}
                     onValueChange={(value) => update({ currency: value })}
                   >
-                    <SelectTrigger id="currency" className="w-full">
+                    <SelectTrigger
+                      id="currency"
+                      className={ACCORDION_INPUT_CLASS + " w-full"}
+                    >
                       <SelectValue placeholder="Select currency" />
                     </SelectTrigger>
                     <SelectContent>
@@ -615,10 +875,16 @@ export function InvoiceEditor({ invoice, onChange }: InvoiceEditorProps) {
                   </Select>
                 </div>
 
-                <div className="space-y-1">
-                  <Label htmlFor="tax-rate">Tax rate (%)</Label>
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="tax-rate"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    Tax rate (%)
+                  </Label>
                   <Input
                     id="tax-rate"
+                    className={ACCORDION_INPUT_CLASS}
                     type="number"
                     min={0}
                     step={0.1}
@@ -629,11 +895,17 @@ export function InvoiceEditor({ invoice, onChange }: InvoiceEditorProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="discount">Discount (%)</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="discount"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    Discount (%)
+                  </Label>
                   <Input
                     id="discount"
+                    className={ACCORDION_INPUT_CLASS}
                     type="number"
                     min={0}
                     step={0.1}
@@ -648,107 +920,111 @@ export function InvoiceEditor({ invoice, onChange }: InvoiceEditorProps) {
 
           <AccordionItem value="items">
             <AccordionTrigger>Product / service items</AccordionTrigger>
-            <AccordionContent className="space-y-3 px-2">
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  Add each product or service as a separate line item.
-                </p>
-                <Button type="button" size="xs" onClick={addLineItem}>
-                  Add item
-                </Button>
-              </div>
-
-              <div className="space-y-3">
-                {invoice.lineItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="space-y-3 rounded-md border bg-muted/40 p-3"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 space-y-1">
-                        <Label>Description</Label>
-                        <Input
-                          placeholder="Describe the product or service"
-                          value={item.description}
-                          onChange={(event) =>
-                            updateLineItem(item.id, {
-                              description: event.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        size="icon-xs"
-                        variant="ghost"
-                        onClick={() => removeLineItem(item.id)}
-                        aria-label="Remove line item"
-                      >
-                        ✕
-                      </Button>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label htmlFor={`qty-${item.id}`}>Quantity</Label>
-                        <Input
-                          id={`qty-${item.id}`}
-                          type="number"
-                          min={0}
-                          value={item.quantity}
-                          onChange={(event) =>
-                            updateLineItem(item.id, {
-                              quantity: Number(event.target.value) || 0,
-                            })
-                          }
-                          placeholder="1"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label htmlFor={`price-${item.id}`}>Unit price</Label>
-                        <Input
-                          id={`price-${item.id}`}
-                          type="number"
-                          min={0}
-                          step={0.01}
-                          value={item.unitPrice}
-                          onChange={(event) =>
-                            updateLineItem(item.id, {
-                              unitPrice: Number(event.target.value) || 0,
-                            })
-                          }
-                          placeholder="0.00"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {invoice.lineItems.length === 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    No items yet. Use &ldquo;Add item&rdquo; to start building
-                    your invoice.
-                  </p>
-                )}
-              </div>
+            <AccordionContent className="">
+              <ItemTable
+                items={invoice.lineItems}
+                currency={invoice.currency}
+                onReorder={reorderLineItems}
+                onUpdate={updateLineItem}
+                onRemove={removeLineItem}
+                onAdd={addLineItem}
+              />
             </AccordionContent>
           </AccordionItem>
 
           <AccordionItem value="notes">
             <AccordionTrigger>Additional notes & terms</AccordionTrigger>
-            <AccordionContent className="space-y-2 px-2">
-              <Label htmlFor="notes">Notes / terms &amp; conditions</Label>
-              <Textarea
-                id="notes"
-                rows={4}
-                placeholder="Add payment terms, late fee policies, bank details, or other important notes for your client."
-                value={invoice.notes}
-                onChange={(event) => update({ notes: event.target.value })}
-              />
+            <AccordionContent className="space-y-5">
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="notes"
+                  className="text-xs font-medium text-muted-foreground"
+                >
+                  Notes / terms &amp; conditions
+                </Label>
+                <Textarea
+                  id="notes"
+                  rows={4}
+                  className="min-h-24 text-sm"
+                  placeholder="Add payment terms, late fee policies, bank details, or other important notes for your client."
+                  value={invoice.notes}
+                  onChange={(event) => update({ notes: event.target.value })}
+                />
+              </div>
             </AccordionContent>
           </AccordionItem>
         </Accordion>
       </div>
+
+      <Dialog
+        open={saveClientDialogOpen}
+        onOpenChange={setSaveClientDialogOpen}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Save Client Info</DialogTitle>
+            <DialogDescription>
+              Enter a profile name to reuse this client information.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            placeholder="e.g. John Construction Client"
+            value={clientProfileName}
+            onChange={(event) => setClientProfileName(event.target.value)}
+          />
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setSaveClientDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSaveClientProfile}
+              disabled={!clientProfileName.trim()}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={saveCompanyDialogOpen}
+        onOpenChange={setSaveCompanyDialogOpen}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Save Company Info</DialogTitle>
+            <DialogDescription>
+              Enter a profile name to reuse this company information.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            placeholder="e.g. Main Company Profile"
+            value={companyProfileName}
+            onChange={(event) => setCompanyProfileName(event.target.value)}
+          />
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setSaveCompanyDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSaveCompanyProfile}
+              disabled={!companyProfileName.trim()}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

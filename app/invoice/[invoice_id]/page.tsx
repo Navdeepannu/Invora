@@ -1,9 +1,12 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import type { InvoiceData } from "@/types/invoice";
+import { validateInvoice } from "@/lib/invoice-validation";
 import { InvoiceEditor } from "@/components/invoice/invoice-editor";
-import { InvoicePreview } from "@/components/invoice/invoice-preview";
+import { InvoicePreview } from "@/components/invoice/preview/InvoicePreview";
+import { InvoiceToolbar } from "@/components/invoice/invoice-toolbar";
+import { getInvoiceDraft, saveInvoiceDraft } from "@/utils/storage";
 
 type BuilderPageProps = {
   params: Promise<{ invoice_id: string }>;
@@ -14,19 +17,19 @@ function createInitialInvoice(invoiceId: string): InvoiceData {
   return {
     id: invoiceId,
     company: {
-      name: "",
-      address: "",
-      email: "",
-      phone: "",
+      name: "Acme Inc.",
+      address: "123 Business Street\nSuite 100\nNew York, NY 10001",
+      email: "billing@acme.com",
+      phone: "+1 (555) 123-4567",
     },
     client: {
-      name: "",
-      address: "",
-      email: "",
-      phone: "",
+      name: "John Doe",
+      address: "456 Client Avenue\nApt 2B\nBrooklyn, NY 11201",
+      email: "john.doe@example.com",
+      phone: "+1 (555) 987-6543",
     },
     meta: {
-      invoiceNumber: invoiceId,
+      invoiceNumber: "INV-001",
       issueDate: today,
       dueDate: today,
     },
@@ -60,14 +63,35 @@ export default function BuilderPage({ params }: BuilderPageProps) {
     createInitialInvoice(invoice_id),
   );
 
+  // Restore draft for this invoice id on load, if present.
+  useEffect(() => {
+    const draft = getInvoiceDraft(invoice_id);
+    if (!draft) return;
+
+    // Only replace state if it differs from the current initial invoice snapshot.
+    // This avoids unnecessary cascading renders while still hydrating from storage.
+    if (JSON.stringify(draft) !== JSON.stringify(invoice)) {
+      setInvoice(draft);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoice_id]);
+
+  // Persist draft as user edits so refresh does not lose progress.
+  useEffect(() => {
+    saveInvoiceDraft(invoice_id, invoice);
+  }, [invoice, invoice_id]);
+
+  const validationErrors = useMemo(() => validateInvoice(invoice), [invoice]);
+
   return (
-    <main className="min-h-screen flex flex-col bg-slate-100">
+    <main className="min-h-screen flex flex-col bg-olive-200 py-4 px-2">
+      <InvoiceToolbar invoice={invoice} validationErrors={validationErrors} />
       <div className="flex-1 grid grid-cols-1 md:grid-cols-2">
-        <section className="border-r bg-white overflow-y-auto">
+        <section className="border-l bg-white overflow-y-auto border-b rounded-bl-xl">
           <InvoiceEditor invoice={invoice} onChange={setInvoice} />
         </section>
 
-        <section className="bg-slate-50 overflow-y-auto p-6">
+        <section className="bg-muted border-r border-b overflow-hidden py-6 px-2 rounded-br-xl">
           <InvoicePreview invoice={invoice} />
         </section>
       </div>
