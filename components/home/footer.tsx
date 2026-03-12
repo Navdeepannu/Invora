@@ -8,38 +8,34 @@ import Container from "./container";
 const product = [
   {
     title: "Features",
-    link: "/features",
+    link: "#features",
   },
   {
     title: "Invoice Templates",
-    link: "/templates",
-  },
-  {
-    title: "Pricing",
-    link: "/pricing",
+    link: "#",
   },
   {
     title: "Integrations",
-    link: "/integrations",
+    link: "#",
   },
 ];
 
 const useCases = [
   {
     title: "Freelancers",
-    link: "/use-cases/freelancers",
+    link: "#",
   },
   {
     title: "Agencies",
-    link: "/use-cases/agencies",
+    link: "#",
   },
   {
     title: "Consultants",
-    link: "/use-cases/consultants",
+    link: "#",
   },
   {
     title: "Small businesses",
-    link: "/use-cases/small-business",
+    link: "#",
   },
 ];
 
@@ -47,7 +43,7 @@ export default function Footer() {
   return (
     <Container>
       <footer className="py-12 mask-b-from-90%">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-16 text-sm px-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-10 mb-16 text-sm px-8">
           <div>
             <h4 className="font-semibold mb-3">Product</h4>
             <ul className="space-y-2 text-neutral-500">
@@ -80,7 +76,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          <div>
+          <div className="col-span-3 md:col-span-1">
             <h4 className="font-semibold mb-3">Social</h4>
             <div className="flex flex-wrap items-center gap-4 text-neutral-500">
               <a
@@ -124,10 +120,10 @@ export default function Footer() {
 
         {/* Brand mark – unchanged */}
         <p className="text-center text-5xl md:text-9xl lg:text-[12rem] font-bold bg-clip-text text-transparent bg-linear-to-b from-neutral-50 dark:from-neutral-950 to-neutral-200 dark:to-neutral-800 inset-x-0">
-          INVOICELY
+          INVORA
         </p>
         <div className="mt-6 text-center text-xs text-neutral-500">
-          © {new Date().getFullYear()} Invoicely. All rights reserved.
+          © {new Date().getFullYear()} Invora. All rights reserved.
         </div>
       </footer>
     </Container>

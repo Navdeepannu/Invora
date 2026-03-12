@@ -6,6 +6,7 @@ import {
   IconDeviceFloppy,
   IconAperture,
   IconDownload,
+  IconLoader2,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import {
@@ -36,7 +37,7 @@ export function InvoiceToolbar({
   const [errorsOpen, setErrorsOpen] = useState(false);
   const [saveInvoiceOpen, setSaveInvoiceOpen] = useState(false);
   const [invoiceName, setInvoiceName] = useState("");
-  const { isExporting, handleDownloadPdf, handleDownloadPng } =
+  const { isExporting, exportingFormat, handleDownloadPdf, handleDownloadPng } =
     useInvoiceExport({ invoice });
 
   const showValidationToastIfNeeded = () => {
@@ -127,8 +128,12 @@ export function InvoiceToolbar({
           disabled={isExporting}
           aria-label="Download invoice as PDF"
         >
-          <IconDownload className="size-4 text-muted shrink-0 hidden sm:block" />
-          Download PDF
+          {exportingFormat === "pdf" ? (
+            <IconLoader2 className="size-4 shrink-0 animate-spin" />
+          ) : (
+            <IconDownload className="size-4 text-muted shrink-0 hidden sm:block" />
+          )}
+          {exportingFormat === "pdf" ? "Downloading…" : "Download PDF"}
         </Button>
         <Button
           type="button"
@@ -138,8 +143,12 @@ export function InvoiceToolbar({
           disabled={isExporting}
           aria-label="Download invoice as image"
         >
-          <IconAperture className="size-4 shrink-0 hidden sm:block" />
-          Download image
+          {exportingFormat === "png" ? (
+            <IconLoader2 className="size-4 shrink-0 animate-spin" />
+          ) : (
+            <IconAperture className="size-4 shrink-0 hidden sm:block" />
+          )}
+          {exportingFormat === "png" ? "Downloading…" : "Download image"}
         </Button>
       </div>
 

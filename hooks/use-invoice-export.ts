@@ -13,6 +13,9 @@ interface UseInvoiceExportProps {
 
 export function useInvoiceExport({ invoice }: UseInvoiceExportProps) {
   const [isExporting, setIsExporting] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<"pdf" | "png" | null>(
+    null,
+  );
 
   const baseName =
     invoice.meta.invoiceNumber?.trim() || `invoice-${invoice.id || "preview"}`;
@@ -21,6 +24,7 @@ export function useInvoiceExport({ invoice }: UseInvoiceExportProps) {
     async (kind: "pdf" | "png") => {
       if (isExporting) return;
       setIsExporting(true);
+      setExportingFormat(kind);
       try {
         if (kind === "pdf") {
           await downloadInvoiceAsPdf(invoice, baseName);
@@ -29,6 +33,7 @@ export function useInvoiceExport({ invoice }: UseInvoiceExportProps) {
         }
       } finally {
         setIsExporting(false);
+        setExportingFormat(null);
       }
     },
     [baseName, invoice, isExporting],
@@ -44,6 +49,7 @@ export function useInvoiceExport({ invoice }: UseInvoiceExportProps) {
 
   return {
     isExporting,
+    exportingFormat,
     handleDownloadPdf,
     handleDownloadPng,
   };

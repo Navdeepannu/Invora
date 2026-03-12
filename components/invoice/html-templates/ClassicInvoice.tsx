@@ -1,40 +1,34 @@
-"use client";
-
-/**
- * Classic layout for the web preview (mirrors ClassicTemplate PDF layout).
- */
 import type { InvoiceData } from "@/types/invoice";
-import Image from "next/image";
 import { formatMoney } from "@/lib/invoice/format";
 import { computeInvoiceTotals } from "../utils/totals";
 
-export type ClassicPreviewProps = {
+export type ClassicInvoiceProps = {
   invoice: InvoiceData;
-  previewWidth: number;
-  previewMinHeight: number;
+  width?: number;
+  minHeight?: number;
 };
 
-export function ClassicPreview({
+export function ClassicInvoice({
   invoice,
-  previewWidth,
-  previewMinHeight,
-}: ClassicPreviewProps) {
+  width,
+  minHeight,
+}: ClassicInvoiceProps) {
   const totals = computeInvoiceTotals(invoice);
   const primaryColor = invoice.theme?.primaryColor ?? "#0f172a";
 
   return (
     <div
-      className="mx-auto rounded-lg border bg-white p-8 shadow-sm"
+      className="mx-auto rounded-lg border border-slate-200 bg-white p-8 shadow-sm"
       style={{
-        width: previewWidth,
-        minHeight: previewMinHeight,
+        width: width ?? 794,
+        minHeight: minHeight ?? 560,
         maxWidth: "100%",
       }}
     >
       <header className="mb-6 flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           {invoice.companyLogoDataUrl && (
-            <Image
+            <img
               src={invoice.companyLogoDataUrl}
               alt="Company logo"
               width={40}
@@ -75,33 +69,33 @@ export function ClassicPreview({
         </div>
       </header>
 
-      <section className="mb-6 grid gap-6 text-xs md:grid-cols-2">
+      <section className="mb-6 flex items-start justify-between gap-6 text-xs">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+          <p className="text-[11px] font-semibold uppercase text-neutral-500">
             Bill to
           </p>
-          <p className="mt-1 text-sm font-medium text-slate-900">
+          <p className="mt-1 text-sm font-medium text-neutral-900">
             {invoice.client.name || "Client name"}
           </p>
-          <p className="whitespace-pre-line text-[11px] text-slate-600">
+          <p className="whitespace-pre-line text-[11px] text-neutral-600">
             {invoice.client.address || "Client address"}
           </p>
-          <p className="mt-1 text-[11px] text-slate-500">
+          <p className="mt-1 text-[11px] text-neutral-500">
             {invoice.client.email}
           </p>
           <p className="text-[11px] text-slate-500">{invoice.client.phone}</p>
         </div>
         <div className="grid gap-1 text-[11px]">
-          <div className="flex justify-between">
-            <span className="text-slate-500">Issue date</span>
+          <div className="flex justify-between gap-4">
+            <span className="text-neutral-500 font-medium">Issue date</span>
             <span className="text-slate-800">{invoice.meta.issueDate}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-slate-500">Due date</span>
+          <div className="flex justify-between gap-4">
+            <span className="text-neutral-500 font-medium">Due date</span>
             <span className="text-slate-800">{invoice.meta.dueDate}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-slate-500">Currency</span>
+          <div className="flex justify-between gap-4">
+            <span className="text-neutral-600 font-medium">Currency</span>
             <span className="text-slate-800">{invoice.currency || "USD"}</span>
           </div>
         </div>
@@ -110,7 +104,7 @@ export function ClassicPreview({
       <section className="mb-6">
         <table className="w-full border-collapse text-xs">
           <thead>
-            <tr className="border-b bg-slate-50 text-[11px] text-slate-600">
+            <tr className="border-b bg-neutral-100 text-[12px] text-slate-600 font-medium">
               <th className="py-2 px-3 text-left font-medium">Item</th>
               <th className="py-2 px-3 text-right font-medium">Quantity</th>
               <th className="py-2 px-3 text-right font-medium">Price</th>
@@ -208,7 +202,7 @@ export function ClassicPreview({
       {invoice.signatureDataUrl && (
         <section className="mt-6 flex items-end justify-end">
           <div className="text-center">
-            <Image
+            <img
               src={invoice.signatureDataUrl}
               alt="Signature"
               width={140}

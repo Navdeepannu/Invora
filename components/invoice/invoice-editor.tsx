@@ -358,7 +358,7 @@ export function InvoiceEditor({ invoice, onChange }: InvoiceEditorProps) {
         <Accordion type="single" collapsible defaultValue="template">
           <AccordionItem value="template">
             <AccordionTrigger>Invoice Templates & branding</AccordionTrigger>
-            <AccordionContent className="space-y-2 grid grid-cols-2 gap-4">
+            <AccordionContent className="space-y-2 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-xs">Invoice template styles</Label>
                 <TemplateSegmentControl

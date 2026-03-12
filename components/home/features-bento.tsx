@@ -56,11 +56,11 @@ const features = [
 function InvoicePreviewIllustration() {
   return (
     <div
-      className="relative w-full flex h-48 md:h-64 items-end justify-center pb-0 -mb-5"
+      className="relative w-full flex h-48 md:h-56 items-end justify-center pb-0 -mb-5 mt-8 md:mt-0"
       aria-hidden
     >
       {/* Left */}
-      <div className="absolute -bottom-5 left-12 z-0 w-[28%] md:w-[30%] max-w-[140px] md:max-w-[180px] opacity-90 shadow-2xl ring-3 ring-muted rounded-md">
+      <div className="absolute -bottom-5 left-12 z-0 w-[28%] md:w-[30%] max-w-35 md:max-w-45 opacity-90 shadow-2xl ring-3 ring-muted rounded-md">
         <Image
           src="/images/invoice-four.png"
           alt="invoice-1"
@@ -264,9 +264,9 @@ function ClientListIllustration() {
 
 function InvoiceListIllustration() {
   return (
-    <div className="z-1 peer relative flex items-end justify-center *:scale-90 ">
+    <div className="z-1 relative flex items-end justify-center *:scale-90">
       <div aria-hidden="true" className="relative">
-        <div className="mask-b-from-65% before:bg-card before:border-border after:ring-ring/50 after:bg-card/75 before:z-1 before:ring-ring/50 group relative -mx-4 px-4 pt-6 before:absolute before:inset-x-6 before:bottom-0 before:top-4 before:rounded-2xl before:ring-1 before:backdrop-blur after:absolute after:inset-x-9 after:bottom-0 after:top-2 after:rounded-2xl after:ring-1">
+        <div className="mask-b-from-50% before:bg-card before:border-border md:-bottom-6 after:ring-ring/50 after:bg-card/75 before:z-1 before:ring-ring/50 group relative -mx-4 px-4 pt-6 before:absolute before:inset-x-6 before:bottom-0 before:top-4 before:rounded-2xl before:ring-1 before:backdrop-blur after:absolute after:inset-x-9 after:bottom-0 after:top-2 after:rounded-2xl after:ring-1">
           <div className="bg-card ring-ring/50 shadow-black/6.5 relative z-10 overflow-hidden rounded-2xl border border-transparent p-8 text-sm shadow-xl ring-1">
             <div className="mb-6 flex items-start justify-between gap-8">
               <div className="space-y-0.5">
@@ -284,7 +284,7 @@ function InvoiceListIllustration() {
 
                 <div className="mt-4 font-mono text-xs">INV-456789</div>
                 <div className="mt-1 -translate-x-1 font-mono text-2xl font-semibold">
-                  $2,84,32.57
+                  $2,843.57
                 </div>
                 <div className="text-xs font-medium">Due in 15 days</div>
               </div>
@@ -439,8 +439,11 @@ function BentoCard({
 
 export function FeaturesBento() {
   return (
-    <Container>
-      <div className="flex flex-col gap-4 py-16 md:px-8 px-6" id="features">
+    <Container className="border-r-0">
+      <div
+        className="flex flex-col gap-4 py-16 md:px-8 px-6 border-r border-border"
+        id="features"
+      >
         <h2 className="tracking-tight text-2xl font-medium">
           Everything you need to create invoices
           <br />
@@ -454,7 +457,7 @@ export function FeaturesBento() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 md:grid-rows-[auto_auto_auto] lg:grid-cols-3 border-y border-border divide-x divide-y divide-border">
+      <div className="grid grid-cols-1 md:grid-cols-2 md:grid-rows-[auto_auto_auto] lg:grid-cols-3 border-y border-border divide-y divide-x divide-border">
         {features.map((feature) => {
           const isTemplate = feature.id === "templates";
           const isDashboard = feature.id === "dashboard";
@@ -465,11 +468,11 @@ export function FeaturesBento() {
               feature={feature}
               className={
                 isTemplate
-                  ? "md:col-span-2 md:row-span-2 min-h-50 lg:min-h-70"
+                  ? "md:col-span-2 md:row-span-2 min-h-50 lg:min-h-70 "
                   : isDashboard
                     ? "lg:col-start-3 lg:row-start-2 min-h-50 lg:min-h-70"
                     : isNoSignup
-                      ? "lg:col-start-3 lg:row-start-3"
+                      ? "lg:col-start-3 lg:row-start-3 border-r"
                       : ""
               }
             />

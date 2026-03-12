@@ -8,6 +8,13 @@ import { useRouter } from "next/navigation";
 export function HeroSection() {
   const router = useRouter();
 
+  const handleScrollToFeatures = () => {
+    const featuresSection = document.getElementById("features");
+    if (featuresSection) {
+      featuresSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   const handleCreateInvoice = () => {
     const id = crypto.randomUUID();
     router.push(`/invoice/${id}`);
@@ -40,7 +47,7 @@ export function HeroSection() {
             className="rounded-lg"
             size="sm"
             variant="outline"
-            onClick={() => router.push("/features")}
+            onClick={handleScrollToFeatures}
           >
             Explore Features
           </Button>

@@ -1,24 +1,18 @@
-"use client";
-
-/**
- * Accent layout for web preview. Warm header and soft body card.
- */
 import type { InvoiceData } from "@/types/invoice";
-import Image from "next/image";
 import { formatMoney } from "@/lib/invoice/format";
 import { computeInvoiceTotals } from "../utils/totals";
 
-export type AccentPreviewProps = {
+export type AccentInvoiceProps = {
   invoice: InvoiceData;
-  previewWidth: number;
-  previewMinHeight: number;
+  width?: number;
+  minHeight?: number;
 };
 
-export function AccentPreview({
+export function AccentInvoice({
   invoice,
-  previewWidth,
-  previewMinHeight,
-}: AccentPreviewProps) {
+  width,
+  minHeight,
+}: AccentInvoiceProps) {
   const totals = computeInvoiceTotals(invoice);
   const accent = invoice.theme?.primaryColor ?? "#f97316";
 
@@ -26,17 +20,16 @@ export function AccentPreview({
     <div
       className="mx-auto"
       style={{
-        width: previewWidth,
-        minHeight: previewMinHeight,
+        width: width ?? 794,
+        minHeight: minHeight ?? 560,
         maxWidth: "100%",
       }}
     >
-      <div className="h-full bg-slate-100 overflow-hidden border border-slate-200">
-        {/* Header band */}
-        <div className="flex items-start justify-between bg-slate-100 px-8 py-5">
+      <div className="h-full overflow-hidden border border-neutral-200  bg-[#f7f7f7] rounded-xl">
+        <div className="flex items-start justify-between  bg-[#f7f7f7] px-8 py-5">
           <div className="flex items-start gap-3">
             {invoice.companyLogoDataUrl && (
-              <Image
+              <img
                 src={invoice.companyLogoDataUrl}
                 alt="Logo"
                 width={40}
@@ -48,6 +41,9 @@ export function AccentPreview({
               <h2 className="text-sm font-semibold text-slate-900">
                 {invoice.company.name || "Your business"}
               </h2>
+              <p className="text-xs font-normal text-gray-800">
+                {invoice.company.website || "example.com"}
+              </p>
               <p className="text-[11px] text-slate-600">
                 {invoice.company.email || "hello@email.com"}
               </p>
@@ -62,16 +58,14 @@ export function AccentPreview({
           </div>
         </div>
 
-        {/* Body (inner card from billed to -> thanks) */}
-        <div className="mx-4 mb-4 bg-white px-8 pb-8 pt-6 text-[13px] text-slate-900">
-          {/* Top details */}
-          <div className="mb-6 grid grid-cols-3 gap-6">
+        <div className="mx-4 mb-4 bg-white rounded-lg px-8 pb-8 pt-6 text-[13px] text-slate-900 border border-neutral-200">
+          <div className="mb-12 flex items-start justify-between">
             <div>
               <p className="mb-1 text-[11px] text-slate-500">Billed to,</p>
               <p className="text-sm font-medium">
                 {invoice.client.name || "Client name"}
               </p>
-              <p className="text-[11px] text-slate-600 whitespace-pre-line">
+              <p className="whitespace-pre-line text-[11px] text-slate-600">
                 {invoice.client.address || "Client address"}
               </p>
               <p className="text-[11px] text-slate-600">
@@ -98,9 +92,8 @@ export function AccentPreview({
             </div>
           </div>
 
-          {/* Items table */}
           <div className="mb-6">
-            <div className="grid grid-cols-12 gap-4 border-b border-slate-200 pb-2 text-[11px] font-semibold uppercase text-slate-500">
+            <div className="grid grid-cols-12 gap-4 border-b border-neutral-200 pb-2 text-[11px] font-semibold uppercase text-slate-500">
               <div className="col-span-6">Item Detail</div>
               <div className="col-span-2 text-center">Qty</div>
               <div className="col-span-2 text-right">Rate</div>
@@ -117,7 +110,7 @@ export function AccentPreview({
                 return (
                   <div
                     key={item.id}
-                    className="grid grid-cols-12 gap-4 py-3 border-b border-slate-200 last:border-b-0"
+                    className="grid grid-cols-12 gap-4 border-b border-neutral-200 py-3 last:border-b-0"
                   >
                     <div className="col-span-6">
                       <p className="text-sm font-medium">
@@ -138,7 +131,6 @@ export function AccentPreview({
               })
             )}
 
-            {/* Totals */}
             <div className="mt-6 space-y-1 text-sm">
               <div className="grid grid-cols-12 gap-4">
                 <div className="col-span-10 text-right text-slate-600">
@@ -156,21 +148,20 @@ export function AccentPreview({
                   {formatMoney(totals.taxAmount, invoice.currency)}
                 </div>
               </div>
-              <div className="grid grid-cols-12 gap-4 border-t border-slate-200 pt-2 font-medium">
-                <div className="col-span-10 text-right text-slate-800">
+              <div className="grid grid-cols-12 gap-4 border-t border-neutral-200 pt-2 font-medium">
+                <div className="col-span-10 text-right text-neutral-800">
                   Total
                 </div>
-                <div className="col-span-2 text-right text-slate-800">
+                <div className="col-span-2 text-right text-neutra-800">
                   {formatMoney(totals.total, invoice.currency)}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Signature + footer inside card */}
           {invoice.signatureDataUrl && (
             <div className="mt-8 flex flex-col items-end">
-              <Image
+              <img
                 src={invoice.signatureDataUrl}
                 alt="Authorized signature"
                 width={120}
@@ -188,9 +179,8 @@ export function AccentPreview({
           </div>
         </div>
 
-        {/* Terms & conditions on outer muted background */}
         {invoice.notes && (
-          <div className="border-t border-slate-200 bg-slate-100 px-8 py-5 text-[11px] text-slate-600">
+          <div className=" bg-[#f7f7f7] px-8 py-5 text-[11px] text-slate-600">
             <p className="mb-1 font-medium text-slate-500">
               Terms &amp; Conditions
             </p>

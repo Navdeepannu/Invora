@@ -1,8 +1,6 @@
 "use client";
 
 import type { InvoiceData } from "@/types/invoice";
-import { generateInvoicePdfBlob } from "./generate-pdf";
-import { pdfBlobToPngBlob } from "./pdf-to-png";
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -16,27 +14,46 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 /**
- * Export invoice as PDF. Uses fixed A4 layout; does not depend on viewport or preview DOM.
+ * Export invoice as PDF via Puppeteer API route.
+ * Sends the invoice JSON to the server; Puppeteer renders the same
+ * HTML+Tailwind template used in the preview and returns a PDF.
  */
 export async function downloadInvoiceAsPdf(
   invoice: InvoiceData,
   baseName: string,
 ): Promise<void> {
-  const blob = await generateInvoicePdfBlob(invoice);
-  const filename = `${baseName || "invoice"}.pdf`;
-  downloadBlob(blob, filename);
+  const res = await fetch("/api/invoice/pdf", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(invoice),
+  });
+
+  if (!res.ok) {
+    throw new Error(`PDF generation failed: ${res.status}`);
+  }
+
+  const blob = await res.blob();
+  downloadBlob(blob, `${baseName || "invoice"}.pdf`);
 }
 
 /**
- * Export invoice as PNG (first page, high resolution). Renders from the same PDF pipeline;
- * does not depend on viewport or preview DOM.
+ * Export invoice as PNG via Puppeteer API route.
+ * Same pipeline as PDF but returns a high-res screenshot instead.
  */
 export async function downloadInvoiceAsPng(
   invoice: InvoiceData,
   baseName: string,
 ): Promise<void> {
-  const pdfBlob = await generateInvoicePdfBlob(invoice);
-  const pngBlob = await pdfBlobToPngBlob(pdfBlob, 2);
-  const filename = `${baseName || "invoice"}.png`;
-  downloadBlob(pngBlob, filename);
+  const res = await fetch("/api/invoice/png", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(invoice),
+  });
+
+  if (!res.ok) {
+    throw new Error(`PNG generation failed: ${res.status}`);
+  }
+
+  const blob = await res.blob();
+  downloadBlob(blob, `${baseName || "invoice"}.png`);
 }

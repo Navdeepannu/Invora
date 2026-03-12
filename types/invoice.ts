@@ -8,6 +8,7 @@ export interface InvoiceTheme {
 export interface InvoiceCompanyInfo {
   name: string;
   address: string;
+  website?: string;
   email?: string;
   phone?: string;
   taxId?: string;
@@ -37,7 +38,6 @@ export interface InvoiceTax {
   rate: number;
 }
 
-/** Computed totals for display in templates and preview. */
 export interface InvoiceTotals {
   subtotal: number;
   discountPercent: number;
@@ -53,28 +53,10 @@ export interface InvoiceData {
   meta: InvoiceMeta;
   lineItems: InvoiceLineItem[];
   tax: InvoiceTax;
-  /**
-   * Optional discount applied to the subtotal (percentage 0–100).
-   */
   discountPercent?: number;
-  /**
-   * Optional company logo image (data URL).
-   */
   companyLogoDataUrl?: string;
-  /**
-   * Optional signature image (data URL collected from canvas or upload).
-   */
   signatureDataUrl?: string;
-  /**
-   * Free-form notes / terms & conditions.
-   */
   notes: string;
-  /**
-   * ISO 4217 currency code (e.g. USD, EUR, GBP).
-   */
   currency: string;
-  /**
-   * Visual theme options for the invoice preview.
-   */
   theme: InvoiceTheme;
 }
