@@ -166,7 +166,7 @@ export function AccentInvoice({
                 alt="Authorized signature"
                 width={120}
                 height={48}
-                className="max-h-14 max-w-[140px] object-contain"
+                className="max-h-14 max-w-35 object-contain"
               />
               <p className="mt-1 text-[11px] text-slate-500">
                 Authorized signature

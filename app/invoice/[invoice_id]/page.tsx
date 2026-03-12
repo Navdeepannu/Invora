@@ -6,7 +6,7 @@ import { validateInvoice } from "@/lib/invoice-validation";
 import { InvoiceEditor } from "@/components/invoice/invoice-editor";
 import { InvoicePreview } from "@/components/invoice/preview/InvoicePreview";
 import { InvoiceToolbar } from "@/components/invoice/invoice-toolbar";
-import { getInvoiceDraft, saveInvoiceDraft } from "@/utils/storage";
+import { getInvoiceById, getInvoiceDraft, saveInvoiceDraft } from "@/utils/storage";
 
 type BuilderPageProps = {
   params: Promise<{ invoice_id: string }>;
@@ -63,15 +63,19 @@ export default function BuilderPage({ params }: BuilderPageProps) {
     createInitialInvoice(invoice_id),
   );
 
-  // Restore draft for this invoice id on load, if present.
+  // Restore draft or saved invoice snapshot for this invoice id on load, if present.
   useEffect(() => {
     const draft = getInvoiceDraft(invoice_id);
-    if (!draft) return;
+    if (draft) {
+      if (JSON.stringify(draft) !== JSON.stringify(invoice)) {
+        setInvoice(draft);
+      }
+      return;
+    }
 
-    // Only replace state if it differs from the current initial invoice snapshot.
-    // This avoids unnecessary cascading renders while still hydrating from storage.
-    if (JSON.stringify(draft) !== JSON.stringify(invoice)) {
-      setInvoice(draft);
+    const saved = getInvoiceById(invoice_id);
+    if (saved && JSON.stringify(saved.invoiceData) !== JSON.stringify(invoice)) {
+      setInvoice(saved.invoiceData);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invoice_id]);

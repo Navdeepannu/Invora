@@ -178,7 +178,7 @@ export function getCompanyProfiles(): SavedCompanyProfile[] {
 export function saveCompanyProfile(
   name: string,
   companyInfo: InvoiceCompanyInfo,
-  options?: { companyLogoDataUrl?: string; signatureDataUrl?: string },
+  _options?: { companyLogoDataUrl?: string; signatureDataUrl?: string },
 ): SavedCompanyProfile {
   const next: SavedCompanyProfile = {
     id: createId(),
@@ -202,6 +202,11 @@ export function getInvoices(): SavedInvoiceRecord[] {
   return readJson<SavedInvoiceRecord[]>(STORAGE_KEYS.savedInvoices, []);
 }
 
+export function getInvoiceById(id: string): SavedInvoiceRecord | null {
+  const all = getInvoices();
+  return all.find((item) => item.id === id) ?? null;
+}
+
 export function saveInvoice(name: string, invoiceData: InvoiceData): SavedInvoiceRecord {
   const next: SavedInvoiceRecord = {
     id: createId(),
@@ -218,4 +223,29 @@ export function saveInvoice(name: string, invoiceData: InvoiceData): SavedInvoic
 export function deleteInvoice(savedInvoiceId: string) {
   const all = getInvoices().filter((item) => item.id !== savedInvoiceId);
   writeJson(STORAGE_KEYS.savedInvoices, all);
+}
+
+export function updateInvoice(
+  savedInvoiceId: string,
+  invoiceData: InvoiceData,
+  options?: { name?: string },
+): SavedInvoiceRecord | null {
+  const all = getInvoices();
+  const index = all.findIndex((item) => item.id === savedInvoiceId);
+  if (index === -1) return null;
+
+  const existing = all[index];
+  const nextName = options?.name?.trim() || existing.name;
+  const updated: SavedInvoiceRecord = {
+    ...existing,
+    name: nextName,
+    invoiceData,
+    status: deriveInvoiceStatus(invoiceData),
+  };
+
+  const nextAll = [...all];
+  nextAll[index] = updated;
+  writeJson(STORAGE_KEYS.savedInvoices, nextAll);
+
+  return updated;
 }

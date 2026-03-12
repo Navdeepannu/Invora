@@ -71,7 +71,7 @@ function InvoicePreviewIllustration() {
       </div>
 
       {/* Center (main) */}
-      <div className="relative z-10 w-[44%] max-w-[200px] md:max-w-[240px] shadow-xl ring-3 ring-muted rounded-md -bottom-5">
+      <div className="relative z-10 w-[44%] max-w-50 md:max-w-60 shadow-xl ring-3 ring-muted rounded-md -bottom-5">
         <Image
           src="/images/invoice-two.png"
           alt="invoice-3"
@@ -82,7 +82,7 @@ function InvoicePreviewIllustration() {
       </div>
 
       {/* Right */}
-      <div className="absolute -bottom-5 right-12 z-0 w-[28%] md:w-[30%] max-w-[140px] shadow-2xl ring-3 ring-muted rounded-md md:max-w-[180px] opacity-90">
+      <div className="absolute -bottom-5 right-12 z-0 w-[28%] md:w-[30%] max-w-35 shadow-2xl ring-3 ring-muted rounded-md md:max-w-45 opacity-90">
         <Image
           src="/images/invoice-one.png"
           alt="invoice-4"

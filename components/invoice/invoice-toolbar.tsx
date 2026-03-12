@@ -23,7 +23,20 @@ import type { InvoiceData } from "@/types/invoice";
 import type { InvoiceValidationError } from "@/lib/invoice-validation";
 import { useInvoiceExport } from "@/hooks/use-invoice-export";
 import { Input } from "@/components/ui/input";
-import { saveInvoice } from "@/utils/storage";
+import {
+  getInvoices,
+  saveInvoice,
+  saveInvoiceDraft,
+  type SavedInvoiceRecord,
+  updateInvoice,
+} from "@/utils/storage";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type InvoiceToolbarProps = {
   invoice: InvoiceData;
@@ -37,6 +50,12 @@ export function InvoiceToolbar({
   const [errorsOpen, setErrorsOpen] = useState(false);
   const [saveInvoiceOpen, setSaveInvoiceOpen] = useState(false);
   const [invoiceName, setInvoiceName] = useState("");
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+  const [duplicateMatches, setDuplicateMatches] = useState<SavedInvoiceRecord[]>([]);
+  const [allInvoicesForSelection, setAllInvoicesForSelection] = useState<
+    SavedInvoiceRecord[]
+  >([]);
+  const [selectedTargetId, setSelectedTargetId] = useState("");
   const { isExporting, exportingFormat, handleDownloadPdf, handleDownloadPng } =
     useInvoiceExport({ invoice });
 
@@ -70,11 +89,73 @@ export function InvoiceToolbar({
     handleDownloadPng();
   };
 
+  const closeDuplicateFlow = () => {
+    setDuplicateDialogOpen(false);
+    setDuplicateMatches([]);
+    setAllInvoicesForSelection([]);
+    setSelectedTargetId("");
+  };
+
   const handleSaveInvoice = () => {
     const name = invoiceName.trim();
     if (!name) return;
-    saveInvoice(name, invoice);
+    const all = getInvoices();
+    const matches = all.filter(
+      (item) => item.name.toLowerCase() === name.toLowerCase(),
+    );
+
+    if (matches.length === 0) {
+      const saved = saveInvoice(name, invoice);
+      saveInvoiceDraft(saved.id, invoice);
+      toast.success("Invoice saved", {
+        description: saved.name,
+      });
+      setSaveInvoiceOpen(false);
+      return;
+    }
+
+    setDuplicateMatches(matches);
+    setAllInvoicesForSelection(all);
     setSaveInvoiceOpen(false);
+    setDuplicateDialogOpen(true);
+  };
+
+  const handleDuplicateSaveAsNew = () => {
+    const name = invoiceName.trim();
+    if (!name) return;
+    const saved = saveInvoice(name, invoice);
+    saveInvoiceDraft(saved.id, invoice);
+    toast.success("Invoice saved as new", {
+      description: saved.name,
+    });
+    closeDuplicateFlow();
+  };
+
+  const handleDuplicateUpdateExisting = () => {
+    const name = invoiceName.trim();
+    if (!name || duplicateMatches.length === 0) return;
+    const target = duplicateMatches[0];
+    const updated = updateInvoice(target.id, invoice, { name });
+    if (updated) {
+      saveInvoiceDraft(updated.id, invoice);
+      toast.success("Invoice updated", {
+        description: updated.name,
+      });
+    }
+    closeDuplicateFlow();
+  };
+
+  const handleDuplicateUpdateChosen = () => {
+    const name = invoiceName.trim();
+    if (!name || !selectedTargetId) return;
+    const updated = updateInvoice(selectedTargetId, invoice, { name });
+    if (updated) {
+      saveInvoiceDraft(updated.id, invoice);
+      toast.success("Invoice updated", {
+        description: updated.name,
+      });
+    }
+    closeDuplicateFlow();
   };
 
   return (
@@ -232,6 +313,95 @@ export function InvoiceToolbar({
               disabled={!invoiceName.trim()}
             >
               Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Invoice name already exists</DialogTitle>
+            <DialogDescription>
+              You already have invoice(s) saved with this name. Choose how you
+              want to save your changes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            {duplicateMatches.length > 0 && (
+              <div className="rounded-md border bg-muted/40 p-3">
+                <p className="mb-1 text-xs font-medium text-muted-foreground">
+                  Matching invoices
+                </p>
+                <ul className="space-y-1 text-xs">
+                  {duplicateMatches.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex items-center justify-between gap-2"
+                    >
+                      <span className="font-medium">{item.name}</span>
+                      <span className="text-muted-foreground">
+                        {new Date(item.createdAt).toLocaleString()}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Button
+                type="button"
+                className="w-full justify-start"
+                onClick={handleDuplicateSaveAsNew}
+              >
+                Save as a new invoice
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start"
+                onClick={handleDuplicateUpdateExisting}
+                disabled={duplicateMatches.length === 0}
+              >
+                Update the existing invoice
+              </Button>
+
+              <div className="mt-2 border-t pt-3">
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Or choose another existing invoice to update:
+                </p>
+                <div className="flex flex-col gap-2">
+                  <Select
+                    value={selectedTargetId}
+                    onValueChange={setSelectedTargetId}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Select invoice to update" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allInvoicesForSelection.map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {item.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleDuplicateUpdateChosen}
+                    disabled={!selectedTargetId}
+                  >
+                    Update selected invoice
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={closeDuplicateFlow}>
+              Cancel
             </Button>
           </DialogFooter>
         </DialogContent>
