@@ -1,5 +1,5 @@
 import FAQsTwo from "@/components/home/faqs";
-import { Features } from "@/components/home/features";
+import { FeaturesBento } from "@/components/home/features-bento";
 import Footer from "@/components/home/footer";
 import { HeroSection } from "@/components/home/hero-section";
 
@@ -7,7 +7,7 @@ export default function Home() {
   return (
     <div>
       <HeroSection />
-      <Features />
+      <FeaturesBento />
       <FAQsTwo />
       <Footer />
     </div>

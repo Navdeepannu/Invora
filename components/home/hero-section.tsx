@@ -17,14 +17,12 @@ export function HeroSection() {
     <Container>
       <div className="flex flex-col gap-4 py-16 md:px-8 px-6">
         <h1 className="tracking-tight md:text-4xl text-2xl font-medium ">
-          The fastest way to create
-          <br />{" "}
-          <span className="text-neutral-500"> and send invoices online</span>
+          Create professional invoices
+          <br /> <span className="text-neutral-500"> in seconds</span>
         </h1>
         <p className="max-w-lg font-medium text-neutral-500">
-          Invoicely helps freelancers and small teams generate clean, branded
-          invoices, manage clients, and export professional PDFs — all from one
-          simple tool.
+          Invora helps freelancers and small businesses generate clean, branded
+          invoices instantly — no signup, no setup, no friction.
         </p>
 
         <div className="flex items-center gap-4 mt-4">
