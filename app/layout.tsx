@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Invoicely - Generate Free Invoices",
+  title: "Invora - Generate Free Invoices",
   description:
     "Generate Free invoices with modern, professional template looks.",
 };
@@ -30,11 +30,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <main>
-
-        <DesktopNavbar />
-        {children}
+          <DesktopNavbar />
+          {children}
         </main>
-
       </body>
     </html>
   );
