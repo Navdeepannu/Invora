@@ -18,9 +18,7 @@ export const DesktopNavbar = () => {
   const isHome = pathname === "/";
 
   return (
-    <header
-      className={`${isHome ? "border-b" : "border-b border-dashed"}`}
-    >
+    <header className={`${isHome ? "border-b" : "border-b border-dashed"}`}>
       <div
         className={`flex items-center justify-between px-4 py-4  ${
           isHome ? "max-w-5xl mx-auto" : "md:px-4"
@@ -32,7 +30,7 @@ export const DesktopNavbar = () => {
         >
           <IconReceiptDollarFilled className="size-7 text-zinc-600 " />
           <span className="tracking-tight font-sans font-semibold text-2xl text-shadow-2xs text-shadow-accent">
-            Invoicely
+            Invora
           </span>
         </div>
         <div className="flex items-center gap-4">
