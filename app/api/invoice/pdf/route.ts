@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": "inline; filename=invoice.pdf",
+        "Content-Disposition": "attachment; filename=invoice.pdf",
       },
     });
   } catch (error) {

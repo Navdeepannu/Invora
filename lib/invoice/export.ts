@@ -2,7 +2,33 @@
 
 import type { InvoiceData } from "@/types/invoice";
 
-function downloadBlob(blob: Blob, filename: string) {
+function isMobile(): boolean {
+  return /iP(hone|od|ad)|Android|Mobile|webOS/i.test(navigator.userAgent);
+}
+
+async function shareFile(blob: Blob, filename: string): Promise<boolean> {
+  if (!navigator.canShare) return false;
+  const file = new File([blob], filename, { type: blob.type });
+  if (!navigator.canShare({ files: [file] })) return false;
+  try {
+    await navigator.share({ files: [file], title: filename });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function downloadBlob(blob: Blob, filename: string) {
+  if (isMobile()) {
+    const shared = await shareFile(blob, filename);
+    if (shared) return;
+
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+    setTimeout(() => URL.revokeObjectURL(url), 120_000);
+    return;
+  }
+
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -10,7 +36,7 @@ function downloadBlob(blob: Blob, filename: string) {
   document.body.appendChild(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 /**
@@ -33,7 +59,7 @@ export async function downloadInvoiceAsPdf(
   }
 
   const blob = await res.blob();
-  downloadBlob(blob, `${baseName || "invoice"}.pdf`);
+  await downloadBlob(blob, `${baseName || "invoice"}.pdf`);
 }
 
 /**
@@ -55,5 +81,5 @@ export async function downloadInvoiceAsPng(
   }
 
   const blob = await res.blob();
-  downloadBlob(blob, `${baseName || "invoice"}.png`);
+  await downloadBlob(blob, `${baseName || "invoice"}.png`);
 }

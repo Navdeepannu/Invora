@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       status: 200,
       headers: {
         "Content-Type": "image/png",
-        "Content-Disposition": "inline; filename=invoice.png",
+        "Content-Disposition": "attachment; filename=invoice.png",
       },
     });
   } catch (error) {
