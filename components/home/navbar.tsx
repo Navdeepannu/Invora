@@ -1,8 +1,8 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import { IconReceiptDollarFilled } from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import Logo from "./logo";
 
 export default function HeaderOne() {
   return (
@@ -25,11 +25,11 @@ export const DesktopNavbar = () => {
         }`}
       >
         <div
-          className="flex items-center gap-0.5 cursor-pointer"
+          className="flex items-center gap-2 cursor-pointer"
           onClick={() => router.push("/")}
         >
-          <IconReceiptDollarFilled className="size-7 text-zinc-600 " />
-          <span className="tracking-tight font-sans font-semibold text-2xl text-shadow-2xs text-shadow-accent">
+          <Logo />
+          <span className="tracking-tight font-sans font-semibold text-2xl leading-none text-shadow-2xs text-shadow-accent">
             Invora
           </span>
         </div>
