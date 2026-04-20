@@ -8,34 +8,11 @@ import Container from "./container";
 const product = [
   {
     title: "Features",
-    link: "#features",
+    link: "/#features",
   },
   {
     title: "Invoice Templates",
-    link: "#",
-  },
-  {
-    title: "Integrations",
-    link: "#",
-  },
-];
-
-const useCases = [
-  {
-    title: "Freelancers",
-    link: "#",
-  },
-  {
-    title: "Agencies",
-    link: "#",
-  },
-  {
-    title: "Consultants",
-    link: "#",
-  },
-  {
-    title: "Small businesses",
-    link: "#",
+    link: "/#features",
   },
 ];
 
@@ -60,27 +37,11 @@ export default function Footer() {
             </ul>
           </div>
 
-          <div>
-            <h4 className="font-semibold mb-3">Use cases</h4>
-            <ul className="space-y-2 text-neutral-500">
-              {useCases.map((item) => (
-                <li key={item.title}>
-                  <a
-                    href={item.link}
-                    className="hover:text-neutral-900 dark:hover:text-neutral-100"
-                  >
-                    {item.title}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
           <div className="col-span-3 md:col-span-1">
             <h4 className="font-semibold mb-3">Social</h4>
             <div className="flex flex-wrap items-center gap-4 text-neutral-500">
               <a
-                href="https://github.com/your-username"
+                href="https://github.com/Navdeepannu/Invora"
                 target="_blank"
                 rel="noreferrer"
                 className="hover:text-neutral-900 dark:hover:text-neutral-100"
@@ -89,7 +50,7 @@ export default function Footer() {
               </a>
               <span>•</span>
               <a
-                href="https://www.linkedin.com/in/your-username"
+                href="https://www.linkedin.com/in/navdeepsingh0/"
                 target="_blank"
                 rel="noreferrer"
                 className="hover:text-neutral-900 dark:hover:text-neutral-100"
@@ -98,7 +59,7 @@ export default function Footer() {
               </a>
               <span>•</span>
               <a
-                href="https://twitter.com/your-username"
+                href="https://x.com/navdeepannu0"
                 target="_blank"
                 rel="noreferrer"
                 className="hover:text-neutral-900 dark:hover:text-neutral-100"
@@ -107,7 +68,7 @@ export default function Footer() {
               </a>
               <span>•</span>
               <a
-                href="https://your-portfolio-domain.com"
+                href="https://www.navdeepsingh.dev/"
                 target="_blank"
                 rel="noreferrer"
                 className="hover:text-neutral-900 dark:hover:text-neutral-100"
