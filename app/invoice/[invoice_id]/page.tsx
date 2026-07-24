@@ -1,6 +1,12 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import {
+  use,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import type { InvoiceData } from "@/types/invoice";
 import { validateInvoice } from "@/lib/invoice-validation";
 import { InvoiceEditor } from "@/components/invoice/invoice-editor";
@@ -56,34 +62,26 @@ function createInitialInvoice(invoiceId: string): InvoiceData {
   };
 }
 
-export default function BuilderPage({ params }: BuilderPageProps) {
-  const { invoice_id } = use(params);
+function loadInitialInvoice(invoiceId: string): InvoiceData {
+  return (
+    getInvoiceDraft(invoiceId) ??
+    getInvoiceById(invoiceId)?.invoiceData ??
+    createInitialInvoice(invoiceId)
+  );
+}
 
+const subscribeToClientReady = () => () => {};
+const getClientReadySnapshot = () => true;
+const getServerReadySnapshot = () => false;
+
+function InvoiceBuilder({ invoiceId }: { invoiceId: string }) {
   const [invoice, setInvoice] = useState<InvoiceData>(() =>
-    createInitialInvoice(invoice_id),
+    loadInitialInvoice(invoiceId),
   );
 
-  // Restore draft or saved invoice snapshot for this invoice id on load, if present.
   useEffect(() => {
-    const draft = getInvoiceDraft(invoice_id);
-    if (draft) {
-      if (JSON.stringify(draft) !== JSON.stringify(invoice)) {
-        setInvoice(draft);
-      }
-      return;
-    }
-
-    const saved = getInvoiceById(invoice_id);
-    if (saved && JSON.stringify(saved.invoiceData) !== JSON.stringify(invoice)) {
-      setInvoice(saved.invoiceData);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [invoice_id]);
-
-  // Persist draft as user edits so refresh does not lose progress.
-  useEffect(() => {
-    saveInvoiceDraft(invoice_id, invoice);
-  }, [invoice, invoice_id]);
+    saveInvoiceDraft(invoiceId, invoice);
+  }, [invoice, invoiceId]);
 
   const validationErrors = useMemo(() => validateInvoice(invoice), [invoice]);
 
@@ -101,4 +99,19 @@ export default function BuilderPage({ params }: BuilderPageProps) {
       </div>
     </main>
   );
+}
+
+export default function BuilderPage({ params }: BuilderPageProps) {
+  const { invoice_id } = use(params);
+  const clientReady = useSyncExternalStore(
+    subscribeToClientReady,
+    getClientReadySnapshot,
+    getServerReadySnapshot,
+  );
+
+  if (!clientReady) {
+    return <main className="min-h-screen bg-olive-200" aria-busy="true" />;
+  }
+
+  return <InvoiceBuilder key={invoice_id} invoiceId={invoice_id} />;
 }

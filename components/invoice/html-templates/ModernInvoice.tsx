@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element -- Raw data-URL images must render unchanged in browser previews and Puppeteer exports. */
 import type { InvoiceData } from "@/types/invoice";
 import { formatMoney } from "@/lib/invoice/format";
 import { computeInvoiceTotals } from "../utils/totals";

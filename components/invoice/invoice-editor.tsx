@@ -304,10 +304,7 @@ export function InvoiceEditor({ invoice, onChange }: InvoiceEditorProps) {
   const handleSaveCompanyProfile = () => {
     const name = companyProfileName.trim();
     if (!name) return;
-    const saved = saveCompanyProfile(name, invoice.company, {
-      companyLogoDataUrl: invoice.companyLogoDataUrl,
-      signatureDataUrl: invoice.signatureDataUrl,
-    });
+    const saved = saveCompanyProfile(name, invoice.company);
     setCompanyProfileName("");
     setSaveCompanyDialogOpen(false);
     refreshProfiles();

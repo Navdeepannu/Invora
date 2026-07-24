@@ -178,7 +178,6 @@ export function getCompanyProfiles(): SavedCompanyProfile[] {
 export function saveCompanyProfile(
   name: string,
   companyInfo: InvoiceCompanyInfo,
-  _options?: { companyLogoDataUrl?: string; signatureDataUrl?: string },
 ): SavedCompanyProfile {
   const next: SavedCompanyProfile = {
     id: createId(),

@@ -22,7 +22,8 @@ export async function POST(request: NextRequest) {
       deviceScaleFactor: 2,
     });
 
-    await page.setContent(html, { waitUntil: "networkidle0" });
+    await page.setContent(html, { waitUntil: "load" });
+    await page.waitForNetworkIdle();
 
     const pngBuffer = await page.screenshot({
       type: "png",

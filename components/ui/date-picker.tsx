@@ -32,13 +32,65 @@ function toISODateString(date: Date | undefined): string {
   if (!date || !isValidDate(date)) {
     return "";
   }
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function parseISODate(value: string): Date | undefined {
-  if (!value?.trim()) return undefined;
-  const d = new Date(value);
-  return isValidDate(d) ? d : undefined;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!match) return undefined;
+
+  return createLocalDate(Number(match[1]), Number(match[2]), Number(match[3]));
+}
+
+const MONTH_NAMES = [
+  "january",
+  "february",
+  "march",
+  "april",
+  "may",
+  "june",
+  "july",
+  "august",
+  "september",
+  "october",
+  "november",
+  "december",
+];
+
+function createLocalDate(year: number, month: number, day: number) {
+  const date = new Date(year, month - 1, day);
+
+  return date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+    ? date
+    : undefined;
+}
+
+function parseDisplayDate(value: string): Date | undefined {
+  const trimmed = value.trim();
+  const isoDate = parseISODate(trimmed);
+  if (isoDate) return isoDate;
+
+  const numeric = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(trimmed);
+  if (numeric) {
+    return createLocalDate(
+      Number(numeric[3]),
+      Number(numeric[1]),
+      Number(numeric[2]),
+    );
+  }
+
+  const named = /^([A-Za-z]+) (\d{1,2}), (\d{4})$/.exec(trimmed);
+  if (!named) return undefined;
+
+  const month = MONTH_NAMES.indexOf(named[1].toLowerCase()) + 1;
+  return month
+    ? createLocalDate(Number(named[3]), month, Number(named[2]))
+    : undefined;
 }
 
 function isValidDate(date: Date | undefined) {
@@ -65,18 +117,33 @@ export function DatePicker({
   placeholder = "Pick a date",
   className,
 }: DatePickerProps) {
+  return (
+    <DatePickerControl
+      key={value}
+      id={id}
+      label={label}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className={className}
+    />
+  );
+}
+
+function DatePickerControl({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+  className,
+}: Required<Pick<DatePickerProps, "value" | "placeholder">> &
+  Omit<DatePickerProps, "value" | "placeholder">) {
   const [open, setOpen] = React.useState(false);
   const parsed = parseISODate(value);
   const [date, setDate] = React.useState<Date | undefined>(parsed);
   const [displayValue, setDisplayValue] = React.useState(formatDate(parsed));
   const [month, setMonth] = React.useState<Date | undefined>(parsed ?? new Date());
-
-  React.useEffect(() => {
-    const p = parseISODate(value);
-    setDate(p);
-    setDisplayValue(formatDate(p));
-    if (p) setMonth(p);
-  }, [value]);
 
   const handleSelect = (d: Date | undefined) => {
     setDate(d);
@@ -88,8 +155,14 @@ export function DatePicker({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value;
     setDisplayValue(v);
-    const d = new Date(v);
-    if (isValidDate(d)) {
+    if (!v.trim()) {
+      setDate(undefined);
+      onChange?.("");
+      return;
+    }
+
+    const d = parseDisplayDate(v);
+    if (d) {
       setDate(d);
       setMonth(d);
       onChange?.(toISODateString(d));
