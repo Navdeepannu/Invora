@@ -4,7 +4,6 @@ import { Button } from "../ui/button";
 import Container from "./container";
 import { IconCaretRightFilled } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 
 export function HeroSection() {
   const router = useRouter();
@@ -24,20 +23,6 @@ export function HeroSection() {
   return (
     <Container>
       <div className="flex flex-col gap-4 py-16 md:px-8 px-6">
-        <Link
-          href="https://peerlist.io/navdeepannu/project/invora"
-          target="_blank"
-          rel="noreferrer"
-          className="self-start"
-        >
-          <Image
-            src="/launch.svg"
-            alt="Invora"
-            width={500}
-            height={500}
-            className="h-16 w-auto object-contain"
-          />
-        </Link>
         <h1 className="tracking-tight md:text-4xl text-2xl font-medium ">
           Create professional invoices
           <br /> <span className="text-neutral-500"> in seconds</span>

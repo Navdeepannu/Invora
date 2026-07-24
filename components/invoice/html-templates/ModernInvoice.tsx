@@ -201,7 +201,7 @@ export function ModernInvoice({
 
       {/* TOTALS */}
       <div className="flex justify-end px-8 py-6">
-        <div className="w-[260px] text-[12px]">
+        <div className="w-65 text-[12px]">
           <div className="flex justify-between py-1">
             <span className="text-slate-500">Subtotal</span>
             <span className="font-medium">

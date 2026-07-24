@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { GripVertical, X } from "lucide-react";
+import { ChevronDown, ChevronUp, GripVertical, Trash } from "lucide-react";
 import type { InvoiceLineItem } from "@/types/invoice";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -79,8 +79,10 @@ export function ItemTable({
       wrapper.setAttribute("aria-hidden", "true");
       wrapper.style.cssText = [
         "position:fixed",
-        "left:0",
-        "top:0",
+        // Chrome needs the node in the document to create a drag image, but it
+        // should never become part of the visible page.
+        "left:-10000px",
+        "top:-10000px",
         "width:" + rect.width + "px",
         "background:var(--color-card, #fff)",
         "box-shadow:0 10px 40px rgba(0,0,0,0.15)",
@@ -153,121 +155,261 @@ export function ItemTable({
           No items yet. Click &ldquo;Add Item&rdquo; to add a line.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border bg-card">
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b bg-muted/40">
-                <th
-                  className="w-10 shrink py-2.5 pl-2 pr-0"
-                  aria-label="Reorder"
-                />
-                <th className="py-2.5 pl-3 text-left font-medium text-muted-foreground">
-                  Item
-                </th>
-                <th className="w-16 sm:w-20 md:w-24 py-2.5 px-2 text-center font-medium text-muted-foreground">
-                  Quantity
-                </th>
-                <th className="w-20 sm:w-24 md:w-28 py-2.5 px-2 text-center font-medium text-muted-foreground">
-                  Cost
-                </th>
-                <th className="w-24 py-2.5 pr-3 text-right font-medium text-muted-foreground">
-                  Total
-                </th>
-                <th className="w-10 shrink py-2.5 pr-2" aria-label="Remove" />
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, index) => {
-                const total = item.quantity * item.unitPrice;
-                return (
-                  <tr
-                    key={item.id}
-                    className={cn(
-                      "group border-b last:border-b-0 hover:bg-muted/20 transition-colors",
-                      draggedIndex === index && "opacity-30 ",
-                      dragOverIndex === index &&
-                        "bg-primary/5 ring-inset ring-1 ring-primary/20",
-                    )}
-                    onDragOver={(e) => handleDragOver(e, index)}
-                    onDragLeave={handleDragLeave}
-                    onDrop={(e) => handleDrop(e, index)}
-                  >
-                    <td className="py-2 pl-2 pr-0 align-middle">
-                      <div
-                        draggable={true}
-                        onDragStart={(e) => handleDragStart(e, index)}
-                        onDragEnd={handleDragEnd}
-                        className="flex min-w-[28px] cursor-grab touch-none select-none items-center justify-center rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing"
-                        role="button"
-                        aria-label="Drag to reorder"
-                      >
-                        <GripVertical className="size-4 shrink-0" />
-                      </div>
-                    </td>
-                    <td className="py-2 pl-3 pr-2 align-middle">
-                      <Input
-                        placeholder="Item description"
-                        value={item.description}
-                        onChange={(e) =>
-                          onUpdate(item.id, { description: e.target.value })
-                        }
-                        className="h-8 w-full min-w-32 border-muted-foreground/20 bg-white text-sm placeholder:text-muted-foreground sm:min-w-0"
-                      />
-                    </td>
-                    <td className="w-16 sm:w-20 md:w-24 py-2 px-2 align-middle">
-                      <Input
-                        type="number"
-                        min={0}
-                        placeholder="1"
-                        value={item.quantity === 0 ? "" : item.quantity}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          const n = v === "" ? 0 : Number(v);
-                          onUpdate(item.id, {
-                            quantity: Number.isNaN(n) ? 0 : Math.max(0, n),
-                          });
-                        }}
-                        className="h-8 w-full border-muted-foreground/20 bg-white text-center text-xs placeholder:text-muted-foreground sm:text-sm"
-                      />
-                    </td>
-                    <td className="w-20 sm:w-24 md:w-28 py-2 px-2 align-middle">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={0.01}
-                        placeholder={costPlaceholder}
-                        value={item.unitPrice === 0 ? "" : item.unitPrice}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          const n = v === "" ? 0 : Number(v);
-                          onUpdate(item.id, {
-                            unitPrice: Number.isNaN(n) ? 0 : Math.max(0, n),
-                          });
-                        }}
-                        className="h-8 w-full border-muted-foreground/20 bg-white text-center text-xs placeholder:text-muted-foreground sm:text-sm"
-                      />
-                    </td>
-                    <td className="py-2 pr-2 align-middle text-right text-xs tabular-nums text-muted-foreground">
-                      {formatTotal(total, currency)}
-                    </td>
-                    <td className="py-2 pr-2 align-middle">
+        <>
+          <div className="space-y-3 sm:hidden">
+            {items.map((item, index) => {
+              const total = item.quantity * item.unitPrice;
+              return (
+                <div
+                  key={item.id}
+                  className="space-y-3 rounded-lg border bg-card p-3"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Item {index + 1}
+                    </p>
+                    <div className="flex items-center gap-1">
                       <Button
                         type="button"
                         size="icon-xs"
                         variant="ghost"
+                        onClick={() => onReorder(index, index - 1)}
+                        disabled={index === 0}
+                        aria-label={`Move item ${index + 1} up`}
+                      >
+                        <ChevronUp />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="icon-xs"
+                        variant="ghost"
+                        onClick={() => onReorder(index, index + 1)}
+                        disabled={index === items.length - 1}
+                        aria-label={`Move item ${index + 1} down`}
+                      >
+                        <ChevronDown />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="xs"
+                        variant="ghost"
                         className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                         onClick={() => onRemove(item.id)}
-                        aria-label="Remove line item"
+                        aria-label={`Remove item ${index + 1}`}
                       >
-                        <X className="size-4" />
+                        <Trash />
+                        Remove
                       </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor={`item-description-${item.id}`}
+                      className="text-xs font-medium text-muted-foreground"
+                    >
+                      Description <span className="text-destructive">*</span>
+                    </label>
+                    <Input
+                      id={`item-description-${item.id}`}
+                      placeholder="Item description"
+                      required
+                      value={item.description}
+                      onChange={(e) =>
+                        onUpdate(item.id, { description: e.target.value })
+                      }
+                      className="h-9 bg-white text-sm"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label
+                        htmlFor={`item-quantity-${item.id}`}
+                        className="text-xs font-medium text-muted-foreground"
+                      >
+                        Quantity
+                      </label>
+                      <Input
+                        id={`item-quantity-${item.id}`}
+                        type="number"
+                        min={0}
+                        inputMode="decimal"
+                        placeholder="1"
+                        value={item.quantity === 0 ? "" : item.quantity}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          const quantity = value === "" ? 0 : Number(value);
+                          onUpdate(item.id, {
+                            quantity: Number.isNaN(quantity)
+                              ? 0
+                              : Math.max(0, quantity),
+                          });
+                        }}
+                        className="h-9 bg-white text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label
+                        htmlFor={`item-cost-${item.id}`}
+                        className="text-xs font-medium text-muted-foreground"
+                      >
+                        Unit cost
+                      </label>
+                      <Input
+                        id={`item-cost-${item.id}`}
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        inputMode="decimal"
+                        placeholder={costPlaceholder}
+                        value={item.unitPrice === 0 ? "" : item.unitPrice}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          const unitPrice = value === "" ? 0 : Number(value);
+                          onUpdate(item.id, {
+                            unitPrice: Number.isNaN(unitPrice)
+                              ? 0
+                              : Math.max(0, unitPrice),
+                          });
+                        }}
+                        className="h-9 bg-white text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t pt-2 text-sm">
+                    <span className="text-xs text-muted-foreground">Total</span>
+                    <span className="font-medium tabular-nums">
+                      {formatTotal(total, currency)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="hidden overflow-x-auto rounded-lg border bg-card sm:block">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b bg-muted/40">
+                  <th
+                    className="w-10 shrink py-2.5 pl-2 pr-0"
+                    aria-label="Reorder"
+                  />
+                  <th className="py-2.5 pl-3 text-left font-medium text-muted-foreground">
+                    Item
+                  </th>
+                  <th className="w-16 sm:w-20 md:w-24 py-2.5 px-2 text-center font-medium text-muted-foreground">
+                    Quantity
+                  </th>
+                  <th className="w-20 sm:w-24 md:w-28 py-2.5 px-2 text-center font-medium text-muted-foreground">
+                    Cost
+                  </th>
+                  <th className="w-24 py-2.5 pr-3 text-right font-medium text-muted-foreground">
+                    Total
+                  </th>
+                  <th className="w-10 shrink py-2.5 pr-2" aria-label="Remove" />
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item, index) => {
+                  const total = item.quantity * item.unitPrice;
+                  return (
+                    <tr
+                      key={item.id}
+                      className={cn(
+                        "group border-b last:border-b-0 hover:bg-muted/20 transition-colors",
+                        draggedIndex === index && "opacity-30 ",
+                        dragOverIndex === index &&
+                          "bg-primary/5 ring-inset ring-1 ring-primary/20",
+                      )}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, index)}
+                    >
+                      <td className="py-2 pl-2 pr-0 align-middle">
+                        <div
+                          draggable={true}
+                          onDragStart={(e) => handleDragStart(e, index)}
+                          onDragEnd={handleDragEnd}
+                          className="flex min-w-7 cursor-grab touch-none select-none items-center justify-center rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing"
+                          role="button"
+                          aria-label="Drag to reorder"
+                        >
+                          <GripVertical className="size-4 shrink-0" />
+                        </div>
+                      </td>
+                      <td className="py-2 pl-3 pr-2 align-middle">
+                        <Input
+                          placeholder="Item description"
+                          required
+                          value={item.description}
+                          onChange={(e) =>
+                            onUpdate(item.id, { description: e.target.value })
+                          }
+                          className="h-8 w-full min-w-32 border-muted-foreground/20 bg-white text-sm placeholder:text-muted-foreground sm:min-w-0"
+                        />
+                      </td>
+                      <td className="w-16 sm:w-20 md:w-24 py-2 px-2 align-middle">
+                        <Input
+                          type="number"
+                          aria-label={`Quantity for ${item.description || `item ${index + 1}`}`}
+                          min={0}
+                          inputMode="decimal"
+                          placeholder="1"
+                          value={item.quantity === 0 ? "" : item.quantity}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            const n = v === "" ? 0 : Number(v);
+                            onUpdate(item.id, {
+                              quantity: Number.isNaN(n) ? 0 : Math.max(0, n),
+                            });
+                          }}
+                          className="h-8 w-full border-muted-foreground/20 bg-white text-center text-xs placeholder:text-muted-foreground sm:text-sm"
+                        />
+                      </td>
+                      <td className="w-20 sm:w-24 md:w-28 py-2 px-2 align-middle">
+                        <Input
+                          type="number"
+                          aria-label={`Unit cost for ${item.description || `item ${index + 1}`}`}
+                          min={0}
+                          step={0.01}
+                          inputMode="decimal"
+                          placeholder={costPlaceholder}
+                          value={item.unitPrice === 0 ? "" : item.unitPrice}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            const n = v === "" ? 0 : Number(v);
+                            onUpdate(item.id, {
+                              unitPrice: Number.isNaN(n) ? 0 : Math.max(0, n),
+                            });
+                          }}
+                          className="h-8 w-full border-muted-foreground/20 bg-white text-center text-xs placeholder:text-muted-foreground sm:text-sm"
+                        />
+                      </td>
+                      <td className="py-2 pr-2 align-middle text-right text-xs tabular-nums text-muted-foreground">
+                        {formatTotal(total, currency)}
+                      </td>
+                      <td className="py-2 pr-2 align-middle">
+                        <Button
+                          type="button"
+                          size="icon-xs"
+                          variant="ghost"
+                          className="text-destructive cursor-pointer bg-destructive/10 hover:bg-destructive/20 hover:text-destructive"
+                          onClick={() => onRemove(item.id)}
+                          aria-label="Remove line item"
+                        >
+                          <Trash className="size-3.5" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );

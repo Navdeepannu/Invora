@@ -90,12 +90,12 @@ function InvoiceBuilder({ invoiceId }: { invoiceId: string }) {
   return (
     <main className="min-h-screen flex flex-col bg-olive-200 py-4 px-2">
       <InvoiceToolbar invoice={invoice} validationErrors={validationErrors} />
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-2">
-        <section className="border-l bg-white overflow-y-auto border-b rounded-bl-xl">
+      <div className="grid flex-1 grid-cols-1 lg:grid-cols-2">
+        <section className="min-w-0 border-l border-b bg-white overflow-y-auto rounded-bl-xl">
           <InvoiceEditor invoice={invoice} onChange={setInvoice} />
         </section>
 
-        <section className="bg-muted border-r border-b overflow-hidden py-6 px-2 rounded-br-xl">
+        <section className="min-w-0 overflow-hidden border-r border-b bg-muted px-1 py-3 sm:px-2 sm:py-6 rounded-br-xl">
           <InvoicePreview invoice={invoice} />
         </section>
       </div>

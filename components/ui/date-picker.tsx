@@ -107,6 +107,7 @@ type DatePickerProps = {
   onChange?: (value: string) => void;
   placeholder?: string;
   className?: string;
+  required?: boolean;
 };
 
 export function DatePicker({
@@ -116,6 +117,7 @@ export function DatePicker({
   onChange,
   placeholder = "Pick a date",
   className,
+  required = false,
 }: DatePickerProps) {
   return (
     <DatePickerControl
@@ -126,6 +128,7 @@ export function DatePicker({
       onChange={onChange}
       placeholder={placeholder}
       className={className}
+      required={required}
     />
   );
 }
@@ -137,6 +140,7 @@ function DatePickerControl({
   onChange,
   placeholder,
   className,
+  required,
 }: Required<Pick<DatePickerProps, "value" | "placeholder">> &
   Omit<DatePickerProps, "value" | "placeholder">) {
   const [open, setOpen] = React.useState(false);
@@ -172,11 +176,15 @@ function DatePickerControl({
   return (
     <Field className={className}>
       {label && (
-        <FieldLabel htmlFor={id}>{label}</FieldLabel>
+        <FieldLabel htmlFor={id}>
+          {label}
+          {required && <span className="text-destructive">*</span>}
+        </FieldLabel>
       )}
       <InputGroup>
         <InputGroupInput
           id={id}
+          required={required}
           value={displayValue}
           placeholder={placeholder}
           onChange={handleInputChange}
