@@ -9,6 +9,7 @@ export type UnifiedInvoiceProps = {
   invoice: InvoiceData;
   width?: number;
   minHeight?: number;
+  mode?: "preview" | "export";
 };
 
 export const htmlTemplateRegistry: Record<

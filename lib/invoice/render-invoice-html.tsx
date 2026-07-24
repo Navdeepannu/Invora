@@ -1,6 +1,6 @@
 import type { InvoiceData } from "@/types/invoice";
 import { getHtmlTemplate } from "@/components/invoice/html-templates/registry";
-import { A4_WIDTH_PX } from "./document-constants";
+import { A4_HEIGHT_PX, A4_WIDTH_PX } from "./document-constants";
 
 /**
  * Renders an invoice to a complete, self-contained HTML document string.
@@ -15,7 +15,12 @@ export async function renderInvoiceHtml(invoice: InvoiceData): Promise<string> {
   const Template = getHtmlTemplate(invoice.theme?.template);
 
   const markup = renderToStaticMarkup(
-    <Template invoice={invoice} width={A4_WIDTH_PX} />,
+    <Template
+      invoice={invoice}
+      width={A4_WIDTH_PX}
+      minHeight={A4_HEIGHT_PX}
+      mode="export"
+    />,
   );
 
   return `<!DOCTYPE html>
@@ -27,7 +32,13 @@ export async function renderInvoiceHtml(invoice: InvoiceData): Promise<string> {
   <style>
     @page { size: A4; margin: 0; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    html, body { margin: 0; padding: 0; width: ${A4_WIDTH_PX}px; background: white; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: ${A4_WIDTH_PX}px;
+      min-height: ${A4_HEIGHT_PX}px;
+      background: white;
+    }
   </style>
 </head>
 <body>

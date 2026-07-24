@@ -69,6 +69,7 @@ export function HeroSection() {
             alt="hero preview"
             width={1200}
             height={800}
+            loading="eager"
             className="w-full max-w-5xl rounded-xl shadow-2xl shadow-zinc-900"
           />
         </div>

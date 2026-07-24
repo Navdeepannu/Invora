@@ -7,26 +7,36 @@ export type AccentInvoiceProps = {
   invoice: InvoiceData;
   width?: number;
   minHeight?: number;
+  mode?: "preview" | "export";
 };
 
 export function AccentInvoice({
   invoice,
   width,
   minHeight,
+  mode = "preview",
 }: AccentInvoiceProps) {
   const totals = computeInvoiceTotals(invoice);
   const accent = invoice.theme?.primaryColor ?? "#f97316";
+  const documentMinHeight = minHeight ?? 560;
 
   return (
     <div
       className="mx-auto"
       style={{
         width: width ?? 794,
-        minHeight: minHeight ?? 560,
+        minHeight: documentMinHeight,
         maxWidth: "100%",
       }}
     >
-      <div className="h-full overflow-hidden border border-neutral-200  bg-[#f7f7f7] rounded-xl">
+      <div
+        className={`h-full overflow-hidden bg-[#f7f7f7] ${
+          mode === "preview"
+            ? "rounded-xl border border-neutral-200"
+            : ""
+        }`}
+        style={{ minHeight: documentMinHeight }}
+      >
         <div className="flex items-start justify-between  bg-[#f7f7f7] px-8 py-5">
           <div className="flex items-start gap-3">
             {invoice.companyLogoDataUrl && (

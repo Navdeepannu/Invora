@@ -7,19 +7,23 @@ export type ModernInvoiceProps = {
   invoice: InvoiceData;
   width?: number;
   minHeight?: number;
+  mode?: "preview" | "export";
 };
 
 export function ModernInvoice({
   invoice,
   width,
   minHeight,
+  mode = "preview",
 }: ModernInvoiceProps) {
   const totals = computeInvoiceTotals(invoice);
   const primaryColor = invoice.theme?.primaryColor ?? "#0f172a";
 
   return (
     <div
-      className="mx-auto border border-neutral-200 bg-white text-[12px]"
+      className={`mx-auto bg-white text-[12px] ${
+        mode === "preview" ? "border border-neutral-200" : ""
+      }`}
       style={{
         width: width ?? 794,
         minHeight: minHeight ?? 560,

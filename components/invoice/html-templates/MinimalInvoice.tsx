@@ -7,6 +7,7 @@ export type MinimalInvoiceProps = {
   invoice: InvoiceData;
   width?: number;
   minHeight?: number;
+  mode?: "preview" | "export";
 };
 
 export function MinimalInvoice({

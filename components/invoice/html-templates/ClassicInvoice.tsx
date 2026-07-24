@@ -7,19 +7,25 @@ export type ClassicInvoiceProps = {
   invoice: InvoiceData;
   width?: number;
   minHeight?: number;
+  mode?: "preview" | "export";
 };
 
 export function ClassicInvoice({
   invoice,
   width,
   minHeight,
+  mode = "preview",
 }: ClassicInvoiceProps) {
   const totals = computeInvoiceTotals(invoice);
   const primaryColor = invoice.theme?.primaryColor ?? "#0f172a";
 
   return (
     <div
-      className="mx-auto rounded-lg border border-slate-200 bg-white p-8 shadow-sm"
+      className={`mx-auto bg-white p-8 ${
+        mode === "preview"
+          ? "rounded-lg border border-slate-200 shadow-sm"
+          : ""
+      }`}
       style={{
         width: width ?? 794,
         minHeight: minHeight ?? 560,
