@@ -55,6 +55,7 @@ import {
   IconDeviceFloppy,
   IconInfoCircle,
 } from "@tabler/icons-react";
+import { createLineItemId } from "@/lib/invoice/line-item-ids";
 
 /** Tighter inputs in accordions so sections read clearly */
 const ACCORDION_INPUT_CLASS = "h-8 text-sm";
@@ -189,7 +190,7 @@ export function InvoiceEditor({ invoice, onChange }: InvoiceEditorProps) {
   };
 
   const addLineItem = () => {
-    const nextId = (invoice.lineItems.length + 1).toString();
+    const nextId = createLineItemId(invoice.lineItems);
     const nextItems: InvoiceLineItem[] = [
       ...invoice.lineItems,
       {

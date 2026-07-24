@@ -12,6 +12,7 @@ import { validateInvoice } from "@/lib/invoice-validation";
 import { InvoiceEditor } from "@/components/invoice/invoice-editor";
 import { InvoicePreview } from "@/components/invoice/preview/InvoicePreview";
 import { InvoiceToolbar } from "@/components/invoice/invoice-toolbar";
+import { ensureUniqueLineItemIds } from "@/lib/invoice/line-item-ids";
 import { getInvoiceById, getInvoiceDraft, saveInvoiceDraft } from "@/utils/storage";
 
 type BuilderPageProps = {
@@ -63,11 +64,12 @@ function createInitialInvoice(invoiceId: string): InvoiceData {
 }
 
 function loadInitialInvoice(invoiceId: string): InvoiceData {
-  return (
+  const invoice =
     getInvoiceDraft(invoiceId) ??
     getInvoiceById(invoiceId)?.invoiceData ??
-    createInitialInvoice(invoiceId)
-  );
+    createInitialInvoice(invoiceId);
+
+  return ensureUniqueLineItemIds(invoice);
 }
 
 const subscribeToClientReady = () => () => {};
